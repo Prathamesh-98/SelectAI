@@ -1,0 +1,1 @@
+"""SelectAI FastAPI application package."""
