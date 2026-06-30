@@ -110,6 +110,8 @@ def _register_exception_handlers(app: FastAPI) -> None:
         SelectAIError,
         UnauthorizedError,
         ValidationError,
+        BadRequestError,
+        FileProcessingError,
     )
 
     def _err(status_code: int, exc: SelectAIError) -> JSONResponse:
@@ -139,6 +141,14 @@ def _register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(ValidationError)
     async def _validation(_: Request, exc: ValidationError) -> JSONResponse:
         return _err(status.HTTP_422_UNPROCESSABLE_ENTITY, exc)
+
+    @app.exception_handler(BadRequestError)
+    async def _bad_request(_: Request, exc: BadRequestError) -> JSONResponse:
+        return _err(status.HTTP_400_BAD_REQUEST, exc)
+
+    @app.exception_handler(FileProcessingError)
+    async def _file_processing(_: Request, exc: FileProcessingError) -> JSONResponse:
+        return _err(status.HTTP_400_BAD_REQUEST, exc)
 
     @app.exception_handler(RateLimitError)
     async def _rate_limit(_: Request, exc: RateLimitError) -> JSONResponse:

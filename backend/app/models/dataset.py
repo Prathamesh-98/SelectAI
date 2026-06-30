@@ -94,7 +94,12 @@ class Dataset(UUIDMixin, TimestampMixin, SoftDeleteMixin, Base):
 
     # ── Processing state ──────────────────────────────────────────────────────
     status: Mapped[DatasetStatus] = mapped_column(
-        sa.Enum(DatasetStatus, name="datasetstatus", native_enum=True),
+        sa.Enum(
+            DatasetStatus,
+            name="datasetstatus",
+            native_enum=True,
+            values_callable=lambda e: [m.value for m in e],
+        ),
         nullable=False,
         default=DatasetStatus.PENDING,
         index=True,

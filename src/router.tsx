@@ -20,13 +20,16 @@ import { HistoryPage }          from './app/pages/HistoryPage'
 import { SettingsPage }         from './app/pages/SettingsPage'
 
 import LandingPage from './App'
+import { ToastProvider } from './design-system/components/Toast'
 
 // ── Root layout — provides AuthProvider to every route ────────────────────────
 function RootLayout() {
   return (
-    <AuthProvider>
-      <Outlet />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <Outlet />
+      </AuthProvider>
+    </ToastProvider>
   )
 }
 

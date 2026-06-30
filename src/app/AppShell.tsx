@@ -10,6 +10,7 @@ import { Menu }                from 'lucide-react'
 import { AppSidebar }          from './AppSidebar'
 import { CreateWorkspaceModal } from './CreateWorkspaceModal'
 import { WorkspaceProvider, useWorkspace } from './WorkspaceContext'
+import { DatasetProvider } from './DatasetContext'
 
 // ── Route → title mapping for the mobile topbar ───────────────────────────────
 const PATH_TITLE: Record<string, string> = {
@@ -82,11 +83,13 @@ function ShellInner() {
   )
 }
 
-// ── Exported shell — wraps ShellInner in WorkspaceProvider ────────────────────
+// ── Exported shell — wraps ShellInner in WorkspaceProvider and DatasetProvider ──
 export default function AppShell() {
   return (
     <WorkspaceProvider>
-      <ShellInner />
+      <DatasetProvider>
+        <ShellInner />
+      </DatasetProvider>
     </WorkspaceProvider>
   )
 }

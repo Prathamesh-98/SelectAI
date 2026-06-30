@@ -48,7 +48,12 @@ class Message(UUIDMixin, TimestampMixin, Base):
 
     # ── Content ───────────────────────────────────────────────────────────────
     role: Mapped[MessageRole] = mapped_column(
-        sa.Enum(MessageRole, name="messagerole", native_enum=True),
+        sa.Enum(
+            MessageRole,
+            name="messagerole",
+            native_enum=True,
+            values_callable=lambda e: [m.value for m in e],
+        ),
         nullable=False,
         index=True,
     )

@@ -77,7 +77,12 @@ class AnalysisSession(UUIDMixin, TimestampMixin, SoftDeleteMixin, Base):
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
     status: Mapped[SessionStatus] = mapped_column(
-        sa.Enum(SessionStatus, name="sessionstatus", native_enum=True),
+        sa.Enum(
+            SessionStatus,
+            name="sessionstatus",
+            native_enum=True,
+            values_callable=lambda e: [m.value for m in e],
+        ),
         nullable=False,
         default=SessionStatus.ACTIVE,
         index=True,

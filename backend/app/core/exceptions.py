@@ -54,6 +54,13 @@ class ValidationError(SelectAIError):
         super().__init__(message=message, code="VALIDATION_ERROR")
 
 
+class BadRequestError(SelectAIError):
+    """Raised for bad request parameters or invalid files (HTTP 400)."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message=message, code="BAD_REQUEST")
+
+
 class UnauthorizedError(SelectAIError):
     """Raised when authentication credentials are missing or invalid (HTTP 401)."""
 

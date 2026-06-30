@@ -59,7 +59,12 @@ class WorkspaceMember(UUIDMixin, TimestampMixin, Base):
 
     # ── Role ──────────────────────────────────────────────────────────────────
     role: Mapped[WorkspaceRole] = mapped_column(
-        sa.Enum(WorkspaceRole, name="workspacerole", native_enum=True),
+        sa.Enum(
+            WorkspaceRole,
+            name="workspacerole",
+            native_enum=True,
+            values_callable=lambda e: [m.value for m in e],
+        ),
         nullable=False,
         default=WorkspaceRole.MEMBER,
     )

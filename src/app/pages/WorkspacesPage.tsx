@@ -11,6 +11,7 @@ import {
 import type { Workspace } from '../types'
 import { useAuth }        from '../../auth/useAuth'
 import { useWorkspace }   from '../WorkspaceContext'
+import { useDatasets }    from '../DatasetContext'
 
 // ─── Internal page-change type (subset of routes used within dashboard) ──────────
 // Maps the old AppPage string values to real routes for the sub-components
@@ -650,8 +651,17 @@ function EmptyStateDashboard({ onPageChange, onCreateWorkspace }: {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function WorkspacesPage() {
   const navigate = useNavigate()
-  const { activeWorkspace, setCreateWsOpen, isLoading, error, refetch } = useWorkspace()
-  const workspace = activeWorkspace
+  const { activeWorkspace, setCreateWsOpen, isLoading: wsLoading, error: wsError, refetch: refetchWs } = useWorkspace()
+  const { datasets, isLoading: dsLoading, error: dsError, refetch: refetchDs } = useDatasets()
+
+  const isLoading = wsLoading || dsLoading
+  const error = wsError || dsError
+  const refetch = () => Promise.all([refetchWs(), refetchDs()])
+
+  const workspace = {
+    ...activeWorkspace,
+    datasets: datasets
+  }
 
   // Map legacy AppPage strings to real route paths
   const onPageChange = (p: AppPage) => navigate(`/${p}`)

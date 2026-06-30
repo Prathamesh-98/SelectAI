@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { SQLCodeBlock }  from '../../design-system/components/SQLCodeBlock'
 import { useWorkspace }  from '../WorkspaceContext'
+import { useDatasets }   from '../DatasetContext'
 import type { AnalysisSession, AIMessage, BarDataPoint, Workspace, Dataset } from '../types'
 
 type Tab = 'analyst' | 'queries' | 'charts' | 'insights'
@@ -298,9 +299,13 @@ export function SessionDetailPage() {
   const { sessionId }  = useParams<{ sessionId: string }>()
   const navigate       = useNavigate()
   const { activeWorkspace, getSession, updateSession } = useWorkspace()
+  const { datasets } = useDatasets()
 
   const session = getSession(sessionId ?? '')
-  const workspace = activeWorkspace
+  const workspace = {
+    ...activeWorkspace,
+    datasets: datasets
+  }
 
   const [activeTab, setActiveTab] = useState<Tab>('analyst')
 

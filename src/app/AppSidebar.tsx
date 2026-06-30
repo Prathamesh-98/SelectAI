@@ -13,6 +13,7 @@ import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 import { AvatarMenu }        from '../design-system/components/AvatarMenu'
 import { useAuth }           from '../auth/useAuth'
 import { useWorkspace }      from './WorkspaceContext'
+import { useDatasets }       from './DatasetContext'
 import type { Workspace }    from './types'
 
 // ── Nav definitions ───────────────────────────────────────────────────────────
@@ -91,6 +92,12 @@ function SidebarContent({ onMobileClose }: { onMobileClose: () => void }) {
     workspaces, activeWorkspace, activeWsId,
     switchWorkspace, setCreateWsOpen,
   } = useWorkspace()
+  const { datasets } = useDatasets()
+
+  const workspace = {
+    ...activeWorkspace,
+    datasets: datasets,
+  }
 
   const displayName = user?.full_name ?? 'User'
   const email       = user?.email ?? ''
@@ -140,7 +147,7 @@ function SidebarContent({ onMobileClose }: { onMobileClose: () => void }) {
               <NavItem
                 key={def.path}
                 def={def}
-                workspace={activeWorkspace}
+                workspace={workspace}
                 onClick={() => onMobileClose()}
               />
             ))}

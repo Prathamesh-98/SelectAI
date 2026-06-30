@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate }        from 'react-router-dom'
 import { FlaskConical, Plus, ArrowRight, X, Clock, CheckSquare, MessageSquare, BarChart2, Database } from 'lucide-react'
 import { useWorkspace }       from '../WorkspaceContext'
+import { useDatasets }        from '../DatasetContext'
 import type { Workspace, AnalysisSession } from '../types'
 
 // ─── New Session Modal ────────────────────────────────────────────────────────
@@ -174,8 +175,12 @@ function SessionCard({ session, workspace, index, onClick }: {
 // ─── Component ────────────────────────────────────────────────────────────────
 export function AnalysisSessionsPage() {
   const { activeWorkspace, createSession } = useWorkspace()
+  const { datasets } = useDatasets()
   const navigate  = useNavigate()
-  const workspace = activeWorkspace
+  const workspace = {
+    ...activeWorkspace,
+    datasets: datasets,
+  }
   const [modalOpen, setModalOpen] = useState(false)
 
   return (

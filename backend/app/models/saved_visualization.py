@@ -60,7 +60,12 @@ class SavedVisualization(UUIDMixin, TimestampMixin, Base):
         nullable=False,
     )
     chart_type: Mapped[VisualizationType] = mapped_column(
-        sa.Enum(VisualizationType, name="visualizationtype", native_enum=True),
+        sa.Enum(
+            VisualizationType,
+            name="visualizationtype",
+            native_enum=True,
+            values_callable=lambda e: [m.value for m in e],
+        ),
         nullable=False,
         default=VisualizationType.BAR,
         index=True,
