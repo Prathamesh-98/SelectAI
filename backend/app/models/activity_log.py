@@ -75,7 +75,14 @@ class ActivityLog(UUIDMixin, Base):
 
     # ── Event data ────────────────────────────────────────────────────────────
     activity_type: Mapped[ActivityType] = mapped_column(
-        sa.Enum(ActivityType, name="activitytype", native_enum=True),
+        sa.Enum(
+            ActivityType,
+            name="activitytype",
+            native_enum=True,
+            # Use the enum member's .value (e.g. "workspace_create") when
+            # writing to PostgreSQL, not its .name ("WORKSPACE_CREATE").
+            values_callable=lambda e: [m.value for m in e],
+        ),
         nullable=False,
     )
     description: Mapped[str] = mapped_column(

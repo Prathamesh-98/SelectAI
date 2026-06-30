@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { Mail, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { AuthLayout } from './AuthLayout'
 
@@ -8,7 +9,7 @@ const item = {
   visible: (i: number) => ({ opacity: 1, y: 0, transition: { duration: 0.38, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] as const } }),
 }
 
-export function ForgotPasswordPage({ onNavigate }: { onNavigate: (page: string) => void }) {
+export function ForgotPasswordPage() {
   const [email,    setEmail]    = useState('')
   const [loading,  setLoading]  = useState(false)
   const [sent,     setSent]     = useState(false)
@@ -54,13 +55,12 @@ export function ForgotPasswordPage({ onNavigate }: { onNavigate: (page: string) 
                 It expires in 15 minutes.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => onNavigate('login')}
+            <Link
+              to="/login"
               className="w-full h-11 rounded-xl font-semibold text-[14px] text-white bg-primary hover:bg-[#2563EB] flex items-center justify-center gap-2 shadow-[0_0_28px_rgba(59,130,246,0.25)] hover:shadow-[0_0_36px_rgba(59,130,246,0.4)] transition-all duration-200"
             >
               Back to sign in <ArrowRight className="w-4 h-4" />
-            </button>
+            </Link>
             <p className="text-[12px] text-zinc-600">
               Didn't receive it?{' '}
               <button type="button" onClick={() => { setSent(false) }} className="text-primary hover:text-primary/80 font-semibold transition-colors">
@@ -125,14 +125,13 @@ export function ForgotPasswordPage({ onNavigate }: { onNavigate: (page: string) 
 
             {/* Back */}
             <motion.div custom={2} variants={item} initial="hidden" animate="visible" className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => onNavigate('login')}
+              <Link
+                to="/login"
                 className="flex items-center gap-1.5 text-[13px] text-zinc-500 hover:text-zinc-200 transition-colors"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Back to sign in
-              </button>
+              </Link>
             </motion.div>
           </motion.form>
         )}

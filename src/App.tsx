@@ -1,21 +1,17 @@
-import Navbar           from './components/Navbar'
-import Hero             from './components/Hero'
-import Features         from './components/Features'
-import ProductShowcase  from './components/ProductShowcase'
-import Workflow         from './components/Workflow'
-import FAQ              from './components/FAQ'
-import CTA              from './components/CTA'
-import Footer           from './components/Footer'
-import AuthRouter       from './auth'
-import AppShell         from './app/AppShell'
-import DesignSystemPage from './DesignSystem'
+// ─── Landing Page ─────────────────────────────────────────────────────────────
+// Pure landing page — all routing now handled by React Router in src/router.tsx
+// src/App.tsx
 
-const qs     = new URLSearchParams(window.location.search)
-const isDS   = qs.has('design-system')
-const isAuth = qs.has('auth')
-const isApp  = qs.has('app')
+import Navbar          from './components/Navbar'
+import Hero            from './components/Hero'
+import Features        from './components/Features'
+import ProductShowcase from './components/ProductShowcase'
+import Workflow        from './components/Workflow'
+import FAQ             from './components/FAQ'
+import CTA             from './components/CTA'
+import Footer          from './components/Footer'
 
-function LandingPage() {
+export default function LandingPage() {
   return (
     <div className="relative min-h-screen bg-background text-white overflow-x-hidden">
       {/* Global background effects */}
@@ -38,12 +34,3 @@ function LandingPage() {
     </div>
   )
 }
-
-function App() {
-  if (isDS)   return <DesignSystemPage />
-  if (isApp)  return <AppShell />
-  if (isAuth) return <AuthRouter />
-  return <LandingPage />
-}
-
-export default App

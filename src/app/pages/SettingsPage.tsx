@@ -1,29 +1,71 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Settings, AlertTriangle } from 'lucide-react'
+import { Settings, AlertTriangle, Loader2 } from 'lucide-react'
 import { WORKSPACE_COLORS } from '../mockData'
-import type { Workspace } from '../types'
+import { useWorkspace } from '../WorkspaceContext'
 
-interface Props {
-  workspace:  Workspace
-  onUpdate:   (patch: Partial<Pick<Workspace, 'name' | 'description' | 'color'>>) => void
-}
+export function SettingsPage() {
+  const {
+    activeWorkspace: workspace,
+    updateWorkspace: onUpdate,
+    deleteWorkspace,
+    workspaces,
+  } = useWorkspace()
 
-export function SettingsPage({ workspace, onUpdate }: Props) {
-  const [name,   setName]   = useState(workspace.name)
-  const [desc,   setDesc]   = useState(workspace.description ?? '')
-  const [color,  setColor]  = useState(workspace.color)
-  const [saved,  setSaved]  = useState(false)
+  const [name,       setName]       = useState(workspace.name)
+  const [desc,       setDesc]       = useState(workspace.description ?? '')
+  const [color,      setColor]      = useState(workspace.color)
+  const [saved,      setSaved]      = useState(false)
+  const [saving,     setSaving]     = useState(false)
+  const [saveError,  setSaveError]  = useState<string | null>(null)
   const [delConfirm, setDelConfirm] = useState(false)
+  const [deleting,   setDeleting]   = useState(false)
+  const [delError,   setDelError]   = useState<string | null>(null)
 
-  const isDirty = name !== workspace.name || desc !== (workspace.description ?? '') || color !== workspace.color
+  const isDirty =
+    name !== workspace.name ||
+    desc !== (workspace.description ?? '') ||
+    color !== workspace.color
 
-  const handleSave = (e: React.FormEvent) => {
+  // ── Save (rename / recolour) ─────────────────────────────────────────────────
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return
-    onUpdate({ name: name.trim(), description: desc.trim(), color })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    if (!name.trim() || saving) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await onUpdate({ name: name.trim(), description: desc.trim(), color })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message ?? 'Failed to save changes.'
+      setSaveError(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ── Delete workspace ─────────────────────────────────────────────────────────
+  const handleDelete = async () => {
+    if (deleting) return
+    // Prevent deleting the last workspace
+    if (workspaces.length <= 1) {
+      setDelError('You cannot delete your only workspace.')
+      return
+    }
+    setDeleting(true)
+    setDelError(null)
+    try {
+      await deleteWorkspace()
+      // deleteWorkspace navigates away automatically
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message ?? 'Failed to delete workspace.'
+      setDelError(msg)
+      setDeleting(false)
+      setDelConfirm(false)
+    }
   }
 
   return (
@@ -99,25 +141,32 @@ export function SettingsPage({ workspace, onUpdate }: Props) {
           </div>
 
           {/* Save */}
+          {saveError && (
+            <p className="text-[12px] text-red-400">{saveError}</p>
+          )}
           <div className="flex items-center gap-3 pt-1">
             <motion.button
               type="submit"
               whileHover={!isDirty ? {} : { y: -1 }}
               whileTap={!isDirty ? {} : { scale: 0.98 }}
-              disabled={!isDirty || !name.trim()}
-              className={`h-9 px-5 rounded-xl text-[13px] font-semibold transition-all duration-200 ${
-                isDirty && name.trim()
+              disabled={!isDirty || !name.trim() || saving}
+              className={`h-9 px-5 rounded-xl text-[13px] font-semibold transition-all duration-200 flex items-center gap-2 ${
+                isDirty && name.trim() && !saving
                   ? saved
                     ? 'bg-green-600 text-white'
                     : 'bg-primary text-white hover:bg-[#2563EB] shadow-[0_0_16px_rgba(59,130,246,0.2)]'
                   : 'bg-white/5 text-zinc-600 cursor-not-allowed'
               }`}
             >
-              {saved ? '✓ Saved' : 'Save Changes'}
+              {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Changes'}
             </motion.button>
-            {isDirty && (
-              <button type="button" onClick={() => { setName(workspace.name); setDesc(workspace.description ?? ''); setColor(workspace.color) }}
-                className="text-[13px] text-zinc-600 hover:text-zinc-300 transition-colors">
+            {isDirty && !saving && (
+              <button
+                type="button"
+                onClick={() => { setName(workspace.name); setDesc(workspace.description ?? ''); setColor(workspace.color) }}
+                className="text-[13px] text-zinc-600 hover:text-zinc-300 transition-colors"
+              >
                 Reset
               </button>
             )}
@@ -136,22 +185,37 @@ export function SettingsPage({ workspace, onUpdate }: Props) {
             <div>
               <p className="text-[13px] font-semibold text-zinc-300">Delete this workspace</p>
               <p className="text-[12px] text-zinc-600 mt-0.5">
-                All datasets, queries, charts and history will be permanently removed.
+                All datasets, sessions, queries, and history will be permanently removed.
               </p>
+              {delError && <p className="text-[12px] text-red-400 mt-1">{delError}</p>}
             </div>
             {!delConfirm ? (
-              <button type="button" onClick={() => setDelConfirm(true)}
-                className="flex-shrink-0 h-9 px-4 rounded-xl text-[13px] font-semibold text-red-400 border border-red-500/25 bg-red-500/8 hover:bg-red-500/15 hover:border-red-500/40 transition-all duration-200">
+              <button
+                type="button"
+                onClick={() => setDelConfirm(true)}
+                disabled={workspaces.length <= 1}
+                title={workspaces.length <= 1 ? 'Cannot delete your only workspace' : undefined}
+                className="flex-shrink-0 h-9 px-4 rounded-xl text-[13px] font-semibold text-red-400 border border-red-500/25 bg-red-500/8 hover:bg-red-500/15 hover:border-red-500/40 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
                 Delete Workspace
               </button>
             ) : (
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-[12px] text-red-400">Are you sure?</span>
-                <button type="button" className="h-8 px-3 rounded-lg text-[12px] font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors">
-                  Yes, delete
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="h-8 px-3 rounded-lg text-[12px] font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors flex items-center gap-1.5 disabled:opacity-60"
+                >
+                  {deleting && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {deleting ? 'Deleting…' : 'Yes, delete'}
                 </button>
-                <button type="button" onClick={() => setDelConfirm(false)}
-                  className="h-8 px-3 rounded-lg text-[12px] text-zinc-500 hover:text-zinc-300 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setDelConfirm(false)}
+                  className="h-8 px-3 rounded-lg text-[12px] text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
                   Cancel
                 </button>
               </div>

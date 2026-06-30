@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, Check, Plus } from 'lucide-react'
+import { ChevronDown, Check, Plus, Loader2 } from 'lucide-react'
 import type { Workspace } from './types'
 
 interface Props {
@@ -19,17 +19,37 @@ const menuV = {
 export function WorkspaceSwitcher({ workspaces, activeWorkspaceId, onSwitch, onCreateNew }: Props) {
   const [open, setOpen] = useState(false)
   const ref             = useRef<HTMLDivElement>(null)
-  const active          = workspaces.find(w => w.id === activeWorkspaceId)!
 
-  // Click outside / Escape to close
+  // Fallback to first workspace if the active id is not found yet
+  const active = workspaces.find(w => w.id === activeWorkspaceId) ?? workspaces[0]
+
+  // ── ALL hooks must run unconditionally before any early return ─────────────
+  // Click outside / Escape to close — runs regardless of whether active exists
   useEffect(() => {
     if (!open) return
-    const click = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
-    const esc   = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    const click = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('mousedown', click)
     document.addEventListener('keydown', esc)
-    return () => { document.removeEventListener('mousedown', click); document.removeEventListener('keydown', esc) }
+    return () => {
+      document.removeEventListener('mousedown', click)
+      document.removeEventListener('keydown', esc)
+    }
   }, [open])
+
+  // ── Loading skeleton — shown only when no workspaces are available yet ─────
+  if (!active) {
+    return (
+      <div className="px-2">
+        <div className="w-full flex items-center gap-2.5 h-10 px-2.5 rounded-xl border border-transparent">
+          <Loader2 className="w-4 h-4 text-zinc-600 animate-spin flex-shrink-0" />
+          <span className="text-[13px] text-zinc-600">Loading…</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div ref={ref} className="relative px-2">

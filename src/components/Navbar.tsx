@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { Database, Menu, X, ChevronRight } from 'lucide-react'
 
 const navLinks = [
@@ -58,19 +59,19 @@ export default function Navbar() {
 
             {/* CTA Buttons */}
             <div className="hidden md:flex items-center gap-3">
-              <a
-                href="?auth=login"
+              <Link
+                to="/login"
                 className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-white transition-colors duration-200"
               >
                 Login
-              </a>
-              <a
-                href="?auth=register"
+              </Link>
+              <Link
+                to="/register"
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-primary hover:bg-primary-600 text-white transition-all duration-200 shadow-glow-blue hover:shadow-lg"
               >
                 Get Started
                 <ChevronRight className="w-4 h-4" />
-              </a>
+              </Link>
             </div>
 
             {/* Mobile Menu Button */}
@@ -108,18 +109,18 @@ export default function Navbar() {
                 </a>
               ))}
               <div className="pt-3 border-t border-white/5 space-y-2">
-                <a
-                  href="?auth=login"
+                <Link
+                  to="/login"
                   className="block px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-white hover:bg-white/5 transition-all"
                 >
                   Login
-                </a>
-                <a
-                  href="?auth=register"
+                </Link>
+                <Link
+                  to="/register"
                   className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-lg text-sm font-semibold bg-primary text-white hover:bg-primary-600 transition-all"
                 >
                   Get Started <ChevronRight className="w-4 h-4" />
-                </a>
+                </Link>
               </div>
             </div>
           </motion.div>

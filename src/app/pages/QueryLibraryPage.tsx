@@ -2,9 +2,8 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { BookMarked, Play, Search, X } from 'lucide-react'
 import { SQLCodeBlock } from '../../design-system/components/SQLCodeBlock'
-import type { Workspace, SavedQuery } from '../types'
-
-interface Props { workspace: Workspace }
+import { useWorkspace } from '../WorkspaceContext'
+import type { SavedQuery } from '../types'
 
 const card = {
   hidden:  { opacity: 0, y: 14 },
@@ -37,7 +36,8 @@ function QueryCard({ q, index }: { q: SavedQuery; index: number }) {
   )
 }
 
-export function QueryLibraryPage({ workspace }: Props) {
+export function QueryLibraryPage() {
+  const { activeWorkspace: workspace } = useWorkspace()
   const [search, setSearch] = useState('')
   const filtered = workspace.savedQueries.filter(q =>
     q.title.toLowerCase().includes(search.toLowerCase()) || q.datasetName.toLowerCase().includes(search.toLowerCase())

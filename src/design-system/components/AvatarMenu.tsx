@@ -66,9 +66,9 @@ export function Avatar({ src, initials, name, size = 'md', className = '' }: Ava
 
 // ─── AvatarMenu ───────────────────────────────────────────────────────────────
 const menuVariants = {
-  hidden:  { opacity: 0, scale: 0.95, y: -6 },
-  visible: { opacity: 1, scale: 1,    y: 0   },
-  exit:    { opacity: 0, scale: 0.97, y: -4  },
+  hidden:  { opacity: 0, scale: 0.95, y: 6  },
+  visible: { opacity: 1, scale: 1,    y: 0  },
+  exit:    { opacity: 0, scale: 0.97, y: 4  },
 }
 
 const defaultActions: AvatarMenuAction[] = [
@@ -157,7 +157,7 @@ export function AvatarMenu({
             initial="hidden" animate="visible" exit="exit"
             transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
             role="menu"
-            className="absolute right-0 top-full mt-2 w-56 bg-[#1C1C1F] border border-white/10 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.7)] overflow-hidden z-[100]"
+            className="absolute left-0 bottom-full mb-2 w-56 bg-[#1C1C1F] border border-white/10 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.7)] overflow-hidden z-[100]"
           >
             {/* User info header */}
             <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/6">

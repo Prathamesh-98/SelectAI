@@ -1,21 +1,20 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import {
   Upload, FlaskConical, BookMarked, Plus, ArrowRight,
   FolderOpen, Bell, Clock, MessageSquare, CheckSquare,
   BarChart2, Sparkles, FileText, AlertTriangle, TrendingUp,
   Search, GitBranch, Loader2, XCircle, CheckCircle2,
-  LayoutGrid, Database, Zap
+  LayoutGrid, Database, Zap, LogOut, Settings, ChevronDown
 } from 'lucide-react'
-import type { Workspace }  from '../types'
-import type { AppPage }    from '../AppSidebar'
+import type { Workspace } from '../types'
+import { useAuth }        from '../../auth/useAuth'
+import { useWorkspace }   from '../WorkspaceContext'
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-interface Props {
-  workspace:         Workspace
-  onPageChange:      (p: AppPage) => void
-  onOpenSession:     (id: string) => void
-  onCreateWorkspace: () => void
-}
+// ─── Internal page-change type (subset of routes used within dashboard) ──────────
+// Maps the old AppPage string values to real routes for the sub-components
+type AppPage = 'dashboard' | 'datasets' | 'sessions' | 'queries' | 'analytics' | 'history' | 'settings'
 
 // ─── Animation variant ────────────────────────────────────────────────────────
 const up = {
@@ -27,8 +26,14 @@ const up = {
 }
 
 // ─── 1. Workspace Header ──────────────────────────────────────────────────────
-function WorkspaceHeader({ workspace }: { workspace: Workspace }) {
+function WorkspaceHeader({ workspace, onPageChange }: { workspace: Workspace; onPageChange: (p: AppPage) => void }) {
+  const { user, logout }            = useAuth()
+  const [userMenuOpen, setUserMenu] = useState(false)
+  const [notifOpen,    setNotif]    = useState(false)
   const alertCount = workspace.datasets.filter(d => d.status === 'processing' || d.status === 'error').length
+
+  const initials = (user?.full_name ?? 'U')
+    .split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
 
   return (
     <div className="flex items-center gap-4 px-6 lg:px-8 py-4 border-b border-white/[0.055] bg-[#09090B] sticky top-0 z-10">
@@ -43,24 +48,114 @@ function WorkspaceHeader({ workspace }: { workspace: Workspace }) {
           )}
         </div>
       </div>
+
       {/* Right controls */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative w-8 h-8 rounded-xl bg-white/4 border border-white/6 flex items-center justify-center text-zinc-500 hover:text-zinc-200 hover:bg-white/8 transition-all duration-150"
-        >
-          <Bell className="w-3.5 h-3.5" />
-          {alertCount > 0 && (
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]" />
+
+        {/* Notification bell */}
+        <div className="relative">
+          <button
+            type="button"
+            aria-label="Notifications"
+            onClick={() => { setNotif(v => !v); setUserMenu(false) }}
+            className={`relative w-8 h-8 rounded-xl border flex items-center justify-center transition-all duration-150 ${
+              notifOpen
+                ? 'bg-white/8 border-white/12 text-zinc-200'
+                : 'bg-white/4 border-white/6 text-zinc-500 hover:text-zinc-200 hover:bg-white/8'
+            }`}
+          >
+            <Bell className="w-3.5 h-3.5" />
+            {alertCount > 0 && (
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)]" />
+            )}
+          </button>
+
+          {/* Notification panel */}
+          {notifOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 top-full mt-2 w-72 bg-[#1C1C1F] border border-white/10 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.7)] overflow-hidden z-[100]"
+            >
+              <div className="px-4 py-3 border-b border-white/6">
+                <p className="text-[12px] font-bold text-zinc-300">Notifications</p>
+              </div>
+              {alertCount === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 gap-2">
+                  <Bell className="w-6 h-6 text-zinc-700" />
+                  <p className="text-[12px] text-zinc-600">No new notifications</p>
+                </div>
+              ) : (
+                <div className="p-1.5 space-y-0.5">
+                  {workspace.datasets
+                    .filter(d => d.status === 'processing' || d.status === 'error')
+                    .map(d => (
+                      <div key={d.id} className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/4 transition-colors">
+                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${d.status === 'error' ? 'bg-red-400' : 'bg-amber-400'}`} />
+                        <div className="min-w-0">
+                          <p className="text-[12px] text-zinc-300 truncate font-mono">{d.name}</p>
+                          <p className="text-[11px] text-zinc-600">{d.status === 'error' ? 'Processing failed' : 'Processing…'}</p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </motion.div>
           )}
-        </button>
-        <div
-          className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-[11px] font-bold shadow-[0_0_12px_rgba(59,130,246,0.25)] flex-shrink-0"
-          aria-label="User avatar"
-        >
-          AC
         </div>
+
+        {/* User avatar button */}
+        <div className="relative">
+          <button
+            type="button"
+            aria-label="User menu"
+            onClick={() => { setUserMenu(v => !v); setNotif(false) }}
+            className={`flex items-center gap-1.5 h-8 pl-0.5 pr-2 rounded-xl border transition-all duration-150 ${
+              userMenuOpen
+                ? 'bg-white/8 border-white/12'
+                : 'bg-white/4 border-white/6 hover:bg-white/8 hover:border-white/10'
+            }`}
+          >
+            <div className="w-7 h-7 rounded-[10px] bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-[11px] font-bold">
+              {initials}
+            </div>
+            <ChevronDown className={`w-3 h-3 text-zinc-500 transition-transform duration-150 ${userMenuOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* User dropdown */}
+          {userMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 top-full mt-2 w-52 bg-[#1C1C1F] border border-white/10 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.7)] overflow-hidden z-[100]"
+            >
+              <div className="px-4 py-3 border-b border-white/6">
+                <p className="text-[13px] font-semibold text-zinc-200 truncate">{user?.full_name ?? 'User'}</p>
+                <p className="text-[11px] text-zinc-600 truncate">{user?.email ?? ''}</p>
+              </div>
+              <div className="p-1.5">
+                <button
+                  type="button"
+                  onClick={() => { setUserMenu(false); onPageChange('settings') }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] text-zinc-300 hover:bg-white/6 hover:text-white transition-colors duration-150"
+                >
+                  <Settings className="w-4 h-4 text-zinc-500" /> Settings
+                </button>
+                <div className="my-1 border-t border-white/6" />
+                <button
+                  type="button"
+                  onClick={() => { setUserMenu(false); logout() }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] text-red-400 hover:bg-red-500/10 transition-colors duration-150"
+                >
+                  <LogOut className="w-4 h-4" /> Sign Out
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </div>
+
       </div>
     </div>
   )
@@ -553,12 +648,51 @@ function EmptyStateDashboard({ onPageChange, onCreateWorkspace }: {
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function WorkspacesPage({ workspace, onPageChange, onOpenSession, onCreateWorkspace }: Props) {
+export function WorkspacesPage() {
+  const navigate = useNavigate()
+  const { activeWorkspace, setCreateWsOpen, isLoading, error, refetch } = useWorkspace()
+  const workspace = activeWorkspace
+
+  // Map legacy AppPage strings to real route paths
+  const onPageChange = (p: AppPage) => navigate(`/${p}`)
+  const onOpenSession = (id: string) => navigate(`/analysis/${id}`)
+  const onCreateWorkspace = () => setCreateWsOpen(true)
+
+  // ── Loading state ──────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-zinc-600">
+          <div className="w-8 h-8 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+          <p className="text-[13px]">Loading workspace…</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Error state ────────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 max-w-xs text-center">
+          <p className="text-[14px] text-zinc-400">{error}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="h-9 px-5 rounded-xl text-[13px] font-semibold text-white bg-primary hover:bg-[#2563EB] transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const isEmpty = workspace.datasets.length === 0 && workspace.sessions.length === 0
 
   return (
     <div className="h-full overflow-y-auto flex flex-col">
-      <WorkspaceHeader workspace={workspace} />
+      <WorkspaceHeader workspace={workspace} onPageChange={onPageChange} />
 
       <div className="flex-1 px-6 lg:px-8 py-6 max-w-5xl mx-auto w-full space-y-8 pb-10">
         {isEmpty ? (

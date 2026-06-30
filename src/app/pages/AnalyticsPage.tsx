@@ -1,8 +1,7 @@
 import { motion } from 'framer-motion'
 import { BarChart2 } from 'lucide-react'
-import type { Workspace, SavedChart, BarDataPoint } from '../types'
-
-interface Props { workspace: Workspace }
+import { useWorkspace } from '../WorkspaceContext'
+import type { SavedChart, BarDataPoint } from '../types'
 
 const card = {
   hidden:  { opacity: 0, y: 14 },
@@ -45,7 +44,8 @@ function ChartCard({ ch, index }: { ch: SavedChart; index: number }) {
   )
 }
 
-export function AnalyticsPage({ workspace }: Props) {
+export function AnalyticsPage() {
+  const { activeWorkspace: workspace } = useWorkspace()
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
       <div>

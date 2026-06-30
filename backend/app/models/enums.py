@@ -59,5 +59,7 @@ class ActivityType(str, enum.Enum):
     VISUALIZATION_SAVE   = "visualization_save"
     MEMBER_INVITE        = "member_invite"
     MEMBER_REMOVE        = "member_remove"
+    WORKSPACE_CREATE     = "workspace_create"
     WORKSPACE_UPDATE     = "workspace_update"
+    WORKSPACE_DELETE     = "workspace_delete"
     USER_LOGIN           = "user_login"

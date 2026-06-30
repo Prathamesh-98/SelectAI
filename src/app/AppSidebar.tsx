@@ -1,30 +1,42 @@
+// ─── App Sidebar ─────────────────────────────────────────────────────────────
+// Uses React Router NavLink for active-state detection.
+// Reads workspace data from WorkspaceContext instead of props.
+// src/app/AppSidebar.tsx
+
 import { motion, AnimatePresence } from 'framer-motion'
-import { LayoutDashboard, FolderOpen, FlaskConical, BookMarked, BarChart2, Clock, Settings, X, Database } from 'lucide-react'
+import { NavLink, useNavigate }    from 'react-router-dom'
+import {
+  LayoutDashboard, FolderOpen, FlaskConical, BookMarked,
+  BarChart2, Clock, Settings, X, Database, LogOut,
+} from 'lucide-react'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 import { AvatarMenu }        from '../design-system/components/AvatarMenu'
+import { useAuth }           from '../auth/useAuth'
+import { useWorkspace }      from './WorkspaceContext'
 import type { Workspace }    from './types'
 
-// ─── Page definition ──────────────────────────────────────────────────────────
-export type AppPage =
-  | 'workspaces' | 'datasets' | 'sessions'
-  | 'queries'    | 'analytics' | 'history' | 'settings'
+// ── Nav definitions ───────────────────────────────────────────────────────────
 
 interface NavDef {
-  id:      AppPage
   label:   string
   icon:    React.FC<{ className?: string }>
+  path:    string
   badge?:  (ws: Workspace) => number | null
   section: 'workspace' | 'library' | 'account'
+  // extra paths that should also count as "active" for this item
+  matchPaths?: string[]
 }
 
 const NAV: NavDef[] = [
-  { id: 'workspaces', label: 'Overview',          icon: LayoutDashboard, section: 'workspace' },
-  { id: 'datasets',   label: 'Datasets',           icon: FolderOpen,  section: 'workspace', badge: ws => ws.datasets.length      || null },
-  { id: 'sessions',   label: 'Analysis Sessions',  icon: FlaskConical, section: 'workspace', badge: ws => ws.sessions.length      || null },
-  { id: 'queries',    label: 'Query Library',      icon: BookMarked,  section: 'library',   badge: ws => ws.savedQueries.length  || null },
-  { id: 'analytics',  label: 'Analytics',           icon: BarChart2,   section: 'library',   badge: ws => ws.savedCharts.length   || null },
-  { id: 'history',    label: 'History',             icon: Clock,       section: 'library'   },
-  { id: 'settings',   label: 'Settings',            icon: Settings,    section: 'account'   },
+  { path: '/dashboard', label: 'Overview',         icon: LayoutDashboard, section: 'workspace' },
+  { path: '/datasets',  label: 'Datasets',          icon: FolderOpen,  section: 'workspace', badge: ws => ws.datasets.length     || null },
+  { path: '/sessions',  label: 'Analysis Sessions', icon: FlaskConical, section: 'workspace',
+    badge: ws => ws.sessions.length || null,
+    matchPaths: ['/analysis'] },                       // /analysis/:id also highlights Sessions
+  { path: '/queries',   label: 'Query Library',     icon: BookMarked,  section: 'library',   badge: ws => ws.savedQueries.length || null },
+  { path: '/analytics', label: 'Analytics',         icon: BarChart2,   section: 'library',   badge: ws => ws.savedCharts.length  || null },
+  { path: '/history',   label: 'History',           icon: Clock,       section: 'library'   },
+  { path: '/settings',  label: 'Settings',          icon: Settings,    section: 'account'   },
 ]
 
 const SECTIONS = [
@@ -33,45 +45,63 @@ const SECTIONS = [
   { key: 'account',   label: 'Account'   },
 ] as const
 
-// ─── Props ────────────────────────────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────────────────────────────
+
 interface Props {
-  workspaces:        Workspace[]
-  activeWorkspace:   Workspace
-  activePage:        AppPage
-  mobileOpen:        boolean
-  onPageChange:      (p: AppPage) => void
-  onWorkspaceSwitch: (id: string) => void
-  onCreateWorkspace: () => void
-  onMobileClose:     () => void
+  mobileOpen:    boolean
+  onMobileClose: () => void
 }
 
-// ─── Nav item ─────────────────────────────────────────────────────────────────
-function NavItem({ def, active, workspace, onClick }: {
-  def: NavDef; active: boolean; workspace: Workspace; onClick: () => void
+// ── Nav item ──────────────────────────────────────────────────────────────────
+
+function NavItem({ def, workspace, onClick }: {
+  def: NavDef; workspace: Workspace; onClick: () => void
 }) {
   const Icon  = def.icon
   const count = def.badge?.(workspace) ?? null
+
   return (
-    <button type="button" onClick={onClick}
-      className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] font-medium transition-all duration-150 border ${
-        active
+    <NavLink
+      to={def.path}
+      onClick={onClick}
+      className={({ isActive }) => [
+        'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] font-medium transition-all duration-150 border',
+        isActive
           ? 'bg-primary/12 text-primary border-primary/20'
-          : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5 border-transparent'
-      }`}>
+          : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5 border-transparent',
+      ].join(' ')}
+    >
       <Icon className="w-4 h-4 flex-shrink-0" />
       <span className="flex-1 text-left">{def.label}</span>
       {count !== null && (
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${active ? 'bg-primary/20 text-primary' : 'bg-white/8 text-zinc-600'}`}>
+        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/8 text-zinc-600">
           {count}
         </span>
       )}
-    </button>
+    </NavLink>
   )
 }
 
-// ─── Sidebar body ─────────────────────────────────────────────────────────────
-function SidebarContent(props: Props) {
-  const { workspaces, activeWorkspace, activePage, onPageChange, onWorkspaceSwitch, onCreateWorkspace, onMobileClose } = props
+// ── Sidebar body ──────────────────────────────────────────────────────────────
+
+function SidebarContent({ onMobileClose }: { onMobileClose: () => void }) {
+  const navigate  = useNavigate()
+  const { user, logout } = useAuth()
+  const {
+    workspaces, activeWorkspace, activeWsId,
+    switchWorkspace, setCreateWsOpen,
+  } = useWorkspace()
+
+  const displayName = user?.full_name ?? 'User'
+  const email       = user?.email ?? ''
+  const initials    = displayName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
+
+  const menuActions = [
+    { key: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" />,
+      onClick: () => { navigate('/settings'); onMobileClose() } },
+    { key: 'logout', label: 'Sign Out', icon: <LogOut className="w-4 h-4" />,
+      divider: true, danger: true, onClick: logout },
+  ]
 
   return (
     <div className="flex flex-col h-full bg-[#111113] border-r border-white/[0.06]">
@@ -93,9 +123,9 @@ function SidebarContent(props: Props) {
       <div className="py-3 border-b border-white/[0.04] flex-shrink-0">
         <WorkspaceSwitcher
           workspaces={workspaces}
-          activeWorkspaceId={activeWorkspace.id}
-          onSwitch={onWorkspaceSwitch}
-          onCreateNew={onCreateWorkspace}
+          activeWorkspaceId={activeWsId}
+          onSwitch={(id) => { switchWorkspace(id); onMobileClose() }}
+          onCreateNew={() => { setCreateWsOpen(true); onMobileClose() }}
         />
       </div>
 
@@ -108,46 +138,56 @@ function SidebarContent(props: Props) {
             </p>
             {NAV.filter(n => n.section === sec.key).map(def => (
               <NavItem
-                key={def.id}
+                key={def.path}
                 def={def}
-                active={activePage === def.id}
                 workspace={activeWorkspace}
-                onClick={() => { onPageChange(def.id); onMobileClose() }}
+                onClick={() => onMobileClose()}
               />
             ))}
           </div>
         ))}
       </div>
 
-      {/* Avatar */}
+      {/* Avatar — real user data + logout */}
       <div className="flex-shrink-0 px-2 py-3 border-t border-white/[0.06]">
-        <AvatarMenu name="Alex Chen" email="alex@company.com" role="Admin" size="sm" />
+        <AvatarMenu
+          name={displayName}
+          email={email}
+          initials={initials}
+          role="Member"
+          actions={menuActions}
+          size="sm"
+        />
       </div>
     </div>
   )
 }
 
-// ─── Exported sidebar ─────────────────────────────────────────────────────────
-export function AppSidebar(props: Props) {
+// ── Exported sidebar ──────────────────────────────────────────────────────────
+
+export function AppSidebar({ mobileOpen, onMobileClose }: Props) {
   return (
     <>
       {/* Desktop */}
       <aside className="hidden lg:flex flex-col w-[220px] xl:w-[240px] flex-shrink-0 h-screen">
-        <SidebarContent {...props} />
+        <SidebarContent onMobileClose={onMobileClose} />
       </aside>
 
       {/* Mobile drawer */}
       <AnimatePresence>
-        {props.mobileOpen && (
+        {mobileOpen && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={props.onMobileClose}
-              className="fixed inset-0 bg-black/50 z-[50] lg:hidden" />
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={onMobileClose}
+              className="fixed inset-0 bg-black/50 z-[50] lg:hidden"
+            />
             <motion.aside
               initial={{ x: -260 }} animate={{ x: 0 }} exit={{ x: -260 }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-              className="fixed top-0 left-0 bottom-0 w-[240px] z-[51] lg:hidden">
-              <SidebarContent {...props} />
+              className="fixed top-0 left-0 bottom-0 w-[240px] z-[51] lg:hidden"
+            >
+              <SidebarContent onMobileClose={onMobileClose} />
             </motion.aside>
           </>
         )}

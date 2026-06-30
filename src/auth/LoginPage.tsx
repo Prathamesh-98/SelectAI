@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Mail, Lock, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { AuthLayout } from './AuthLayout'
+import { useAuth }    from './useAuth'
 
 // Shared stagger helper
 const item = {
@@ -32,18 +34,37 @@ function OrDivider() {
   )
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-export function LoginPage({ onNavigate }: { onNavigate: (page: string) => void }) {
+// ─── Component ────────────────────────────────────────────────────────────────────
+export function LoginPage() {
+  const { login }               = useAuth()
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
   const [showPw,   setShowPw]   = useState(false)
   const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
     setLoading(true)
-    setTimeout(() => setLoading(false), 1800) // simulate
+    try {
+      await login({ email, password })
+      // AuthContext.login() saves tokens and navigates to ?app
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string; detail?: { message?: string } | string } } })
+          ?.response?.data?.detail
+      if (typeof msg === 'object' && msg !== null && 'message' in msg) {
+        setError(msg.message ?? 'Login failed. Please try again.')
+      } else if (typeof msg === 'string') {
+        setError(msg)
+      } else {
+        setError('Login failed. Please check your credentials and try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -52,6 +73,17 @@ export function LoginPage({ onNavigate }: { onNavigate: (page: string) => void }
       subtitle="Sign in to your SelectAI workspace."
     >
       <form onSubmit={handleSubmit} noValidate className="space-y-0">
+
+        {/* Error banner */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+            className="mb-4 flex items-start gap-2.5 rounded-xl border border-red-500/20 bg-red-500/10 px-3.5 py-3"
+          >
+            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-[13px] text-red-300 leading-snug">{error}</p>
+          </motion.div>
+        )}
 
         {/* Email */}
         <motion.div custom={0} variants={item} initial="hidden" animate="visible" className="mb-4">
@@ -79,13 +111,12 @@ export function LoginPage({ onNavigate }: { onNavigate: (page: string) => void }
             <label htmlFor="login-password" className="text-[13px] font-medium text-zinc-300">
               Password
             </label>
-            <button
-              type="button"
-              onClick={() => onNavigate('forgot')}
+            <Link
+              to="/forgot-password"
               className="text-[12px] font-medium text-primary hover:text-primary/80 transition-colors"
             >
               Forgot password?
-            </button>
+            </Link>
           </div>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 pointer-events-none" />
@@ -178,9 +209,9 @@ export function LoginPage({ onNavigate }: { onNavigate: (page: string) => void }
         {/* Register link */}
         <motion.p custom={6} variants={item} initial="hidden" animate="visible" className="text-center text-[13px] text-zinc-600 mt-6">
           Don't have an account?{' '}
-          <button type="button" onClick={() => onNavigate('register')} className="text-primary font-semibold hover:text-primary/80 transition-colors">
+          <Link to="/register" className="text-primary font-semibold hover:text-primary/80 transition-colors">
             Create one free
-          </button>
+          </Link>
         </motion.p>
       </form>
     </AuthLayout>

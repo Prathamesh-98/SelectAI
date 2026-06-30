@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Sparkles } from 'lucide-react'
 
 export default function CTA() {
+  const navigate = useNavigate()
   return (
     <section className="py-24 px-4" id="get-started">
       <div className="max-w-4xl mx-auto">
@@ -80,7 +82,7 @@ export default function CTA() {
               <button
                 id="cta-get-started"
                 type="button"
-                onClick={() => { window.location.href = '/?auth=register' }}
+                onClick={() => navigate('/register')}
                 className="group flex items-center gap-2 px-8 py-4 rounded-xl bg-primary hover:bg-primary-600 text-white font-semibold text-base transition-all duration-300 shadow-glow-blue hover:shadow-lg hover:-translate-y-0.5"
               >
                 Get Started Free

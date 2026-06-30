@@ -1,24 +1,18 @@
 import { useState }          from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate }        from 'react-router-dom'
 import { FlaskConical, Plus, ArrowRight, X, Clock, CheckSquare, MessageSquare, BarChart2, Database } from 'lucide-react'
-import { SQLCodeBlock }     from '../../design-system/components/SQLCodeBlock'
+import { useWorkspace }       from '../WorkspaceContext'
 import type { Workspace, AnalysisSession } from '../types'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface Props {
-  workspace:      Workspace
-  onOpenSession:  (id: string) => void
-  onCreateSession: (name: string, datasetIds: string[], description: string) => void
-}
 
 // ─── New Session Modal ────────────────────────────────────────────────────────
 function NewSessionModal({ workspace, open, onClose, onCreate }: {
   workspace: Workspace; open: boolean
   onClose: () => void; onCreate: (name: string, datasetIds: string[], description: string) => void
 }) {
-  const [name,       setName]       = useState('')
-  const [desc,       setDesc]       = useState('')
-  const [selected,   setSelected]   = useState<Set<string>>(new Set())
+  const [name,     setName]     = useState('')
+  const [desc,     setDesc]     = useState('')
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const toggle = (id: string) =>
     setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
@@ -41,8 +35,6 @@ function NewSessionModal({ workspace, open, onClose, onCreate }: {
             className="fixed inset-0 z-[201] flex items-center justify-center p-4 pointer-events-none">
             <div className="pointer-events-auto w-full max-w-md bg-[#18181B] border border-white/10 rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.6)] overflow-hidden"
               onClick={e => e.stopPropagation()}>
-
-              {/* Header */}
               <div className="flex items-center justify-between px-6 py-5 border-b border-white/6">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-secondary/15 border border-secondary/25 flex items-center justify-center">
@@ -57,9 +49,7 @@ function NewSessionModal({ workspace, open, onClose, onCreate }: {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-
               <form onSubmit={handleCreate} className="p-6 space-y-5">
-                {/* Name */}
                 <div>
                   <label htmlFor="sess-name" className="block text-[13px] font-medium text-zinc-300 mb-1.5">
                     Session name <span className="text-red-400">*</span>
@@ -68,8 +58,6 @@ function NewSessionModal({ workspace, open, onClose, onCreate }: {
                     placeholder="e.g. Q3 Revenue Analysis" maxLength={60} required autoFocus
                     className="w-full h-10 px-3.5 rounded-xl bg-zinc-900/70 border border-white/8 text-zinc-100 text-[14px] placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 hover:border-white/14 transition-all duration-200" />
                 </div>
-
-                {/* Description */}
                 <div>
                   <label htmlFor="sess-desc" className="block text-[13px] font-medium text-zinc-300 mb-1.5">
                     Goal <span className="text-zinc-600 font-normal">(optional)</span>
@@ -78,8 +66,6 @@ function NewSessionModal({ workspace, open, onClose, onCreate }: {
                     placeholder="What are you trying to find out?" rows={2} maxLength={200}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900/70 border border-white/8 text-zinc-100 text-[14px] placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 hover:border-white/14 transition-all duration-200 resize-none leading-relaxed" />
                 </div>
-
-                {/* Dataset selection */}
                 <div>
                   <p className="text-[13px] font-medium text-zinc-300 mb-2">
                     Attach datasets <span className="text-zinc-600 font-normal">(optional)</span>
@@ -112,8 +98,6 @@ function NewSessionModal({ workspace, open, onClose, onCreate }: {
                     </div>
                   )}
                 </div>
-
-                {/* Actions */}
                 <div className="flex gap-3 pt-1">
                   <button type="button" onClick={onClose}
                     className="flex-1 h-10 rounded-xl text-[14px] font-semibold text-zinc-400 bg-white/5 border border-white/8 hover:bg-white/8 hover:text-white transition-all duration-200">
@@ -151,8 +135,6 @@ function SessionCard({ session, workspace, index, onClick }: {
     <motion.div custom={index} variants={card} initial="hidden" animate="visible"
       className="bg-white/[0.025] border border-white/6 rounded-2xl p-5 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-200 flex flex-col gap-4 group cursor-pointer"
       onClick={onClick}>
-
-      {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-secondary/12 border border-secondary/20 flex items-center justify-center flex-shrink-0">
@@ -167,8 +149,6 @@ function SessionCard({ session, workspace, index, onClick }: {
         </div>
         <ArrowRight className="w-4 h-4 text-zinc-700 flex-shrink-0 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-200 mt-0.5" />
       </div>
-
-      {/* Dataset pills */}
       {attachedDatasets.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {attachedDatasets.map(ds => (
@@ -178,15 +158,11 @@ function SessionCard({ session, workspace, index, onClick }: {
           ))}
         </div>
       )}
-
-      {/* Stats row */}
       <div className="flex items-center gap-4 text-[11px] text-zinc-600">
         <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{session.messages.length} messages</span>
         <span className="flex items-center gap-1"><CheckSquare className="w-3 h-3" />{session.queries.length} queries</span>
         <span className="flex items-center gap-1"><BarChart2 className="w-3 h-3" />{session.charts.length} charts</span>
       </div>
-
-      {/* Timestamp */}
       <div className="flex items-center gap-1.5 text-[11px] text-zinc-700 border-t border-white/4 pt-3">
         <Clock className="w-3 h-3" />
         Updated {session.updatedAt.includes('T') ? new Date(session.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : session.updatedAt}
@@ -196,13 +172,15 @@ function SessionCard({ session, workspace, index, onClick }: {
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function AnalysisSessionsPage({ workspace, onOpenSession, onCreateSession }: Props) {
+export function AnalysisSessionsPage() {
+  const { activeWorkspace, createSession } = useWorkspace()
+  const navigate  = useNavigate()
+  const workspace = activeWorkspace
   const [modalOpen, setModalOpen] = useState(false)
 
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1">
           <h1 className="text-[22px] font-bold text-white tracking-tight">Analysis Sessions</h1>
@@ -216,11 +194,16 @@ export function AnalysisSessionsPage({ workspace, onOpenSession, onCreateSession
         </button>
       </div>
 
-      {/* Grid */}
       {workspace.sessions.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {workspace.sessions.map((s, i) => (
-            <SessionCard key={s.id} session={s} workspace={workspace} index={i} onClick={() => onOpenSession(s.id)} />
+            <SessionCard
+              key={s.id}
+              session={s}
+              workspace={workspace}
+              index={i}
+              onClick={() => navigate(`/analysis/${s.id}`)}
+            />
           ))}
         </div>
       ) : (
@@ -237,7 +220,12 @@ export function AnalysisSessionsPage({ workspace, onOpenSession, onCreateSession
         </div>
       )}
 
-      <NewSessionModal workspace={workspace} open={modalOpen} onClose={() => setModalOpen(false)} onCreate={onCreateSession} />
+      <NewSessionModal
+        workspace={workspace}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onCreate={createSession}
+      />
     </div>
   )
 }

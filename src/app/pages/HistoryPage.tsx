@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { motion }   from 'framer-motion'
 import { Upload, BookMarked, BarChart2, FlaskConical, Clock, CheckCircle2, AlertCircle } from 'lucide-react'
-import type { Workspace, HistoryEntry, HistoryType } from '../types'
-
-interface Props { workspace: Workspace }
+import { useWorkspace } from '../WorkspaceContext'
+import type { HistoryEntry, HistoryType } from '../types'
 
 type Filter = 'all' | HistoryType
 
@@ -49,7 +48,8 @@ function HistoryRow({ entry, index }: { entry: HistoryEntry; index: number }) {
   )
 }
 
-export function HistoryPage({ workspace }: Props) {
+export function HistoryPage() {
+  const { activeWorkspace: workspace } = useWorkspace()
   const [filter, setFilter] = useState<Filter>('all')
 
   const entries = filter === 'all'

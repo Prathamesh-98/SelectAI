@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { User, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { User, Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react'
 import { AuthLayout } from './AuthLayout'
+import { useAuth }    from './useAuth'
 
 const item = {
   hidden:  { opacity: 0, y: 14 },
@@ -85,7 +87,8 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function RegisterPage({ onNavigate }: { onNavigate: (page: string) => void }) {
+export function RegisterPage() {
+  const { register }            = useAuth()
   const [name,     setName]     = useState('')
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
@@ -94,14 +97,32 @@ export function RegisterPage({ onNavigate }: { onNavigate: (page: string) => voi
   const [showCf,   setShowCf]   = useState(false)
   const [terms,    setTerms]    = useState(false)
   const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState<string | null>(null)
 
   const pwMismatch = confirm.length > 0 && password !== confirm
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!terms || pwMismatch) return
+    setError(null)
     setLoading(true)
-    setTimeout(() => setLoading(false), 1800)
+    try {
+      await register({ full_name: name, email, password })
+      // AuthContext.register() saves tokens and navigates to ?app
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string; detail?: { message?: string } | string } } })
+          ?.response?.data?.detail
+      if (typeof msg === 'object' && msg !== null && 'message' in msg) {
+        setError(msg.message ?? 'Registration failed. Please try again.')
+      } else if (typeof msg === 'string') {
+        setError(msg)
+      } else {
+        setError('Registration failed. Please try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const eyeBtn = (show: boolean, toggle: () => void) => (
@@ -113,6 +134,17 @@ export function RegisterPage({ onNavigate }: { onNavigate: (page: string) => voi
   return (
     <AuthLayout title="Create your account" subtitle="Start querying your data with AI in minutes.">
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
+
+        {/* Error banner */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+            className="flex items-start gap-2.5 rounded-xl border border-red-500/20 bg-red-500/10 px-3.5 py-3"
+          >
+            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-[13px] text-red-300 leading-snug">{error}</p>
+          </motion.div>
+        )}
 
         {/* Full Name */}
         <motion.div custom={0} variants={item} initial="hidden" animate="visible">
@@ -214,9 +246,9 @@ export function RegisterPage({ onNavigate }: { onNavigate: (page: string) => voi
         {/* Login link */}
         <motion.p custom={7} variants={item} initial="hidden" animate="visible" className="text-center text-[13px] text-zinc-600">
           Already have an account?{' '}
-          <button type="button" onClick={() => onNavigate('login')} className="text-primary font-semibold hover:text-primary/80 transition-colors">
+          <Link to="/login" className="text-primary font-semibold hover:text-primary/80 transition-colors">
             Sign in
-          </button>
+          </Link>
         </motion.p>
       </form>
     </AuthLayout>

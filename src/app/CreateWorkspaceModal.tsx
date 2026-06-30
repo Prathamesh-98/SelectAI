@@ -1,27 +1,46 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Database } from 'lucide-react'
+import { X, Database, Loader2 } from 'lucide-react'
 import { WORKSPACE_COLORS } from './mockData'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Props {
   open:     boolean
   onClose:  () => void
-  onCreate: (data: { name: string; description: string; color: string }) => void
+  onCreate: (data: { name: string; description: string; color: string }) => Promise<void>
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export function CreateWorkspaceModal({ open, onClose, onCreate }: Props) {
-  const [name,   setName]   = useState('')
-  const [desc,   setDesc]   = useState('')
-  const [color,  setColor]  = useState(WORKSPACE_COLORS[0].value)
+  const [name,      setName]      = useState('')
+  const [desc,      setDesc]      = useState('')
+  const [color,     setColor]     = useState(WORKSPACE_COLORS[0].value)
+  const [loading,   setLoading]   = useState(false)
+  const [error,     setError]     = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!name.trim()) return
-    onCreate({ name: name.trim(), description: desc.trim(), color })
+  const reset = () => {
     setName(''); setDesc(''); setColor(WORKSPACE_COLORS[0].value)
-    onClose()
+    setError(null)
+  }
+
+  const handleClose = () => { reset(); onClose() }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim() || loading) return
+    setLoading(true)
+    setError(null)
+    try {
+      await onCreate({ name: name.trim(), description: desc.trim(), color })
+      reset()
+      onClose()
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message ?? 'Failed to create workspace.'
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -31,7 +50,7 @@ export function CreateWorkspaceModal({ open, onClose, onCreate }: Props) {
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={handleClose}
             className="fixed inset-0 bg-black/60 backdrop-blur-[3px] z-[200]"
           />
 
@@ -58,7 +77,7 @@ export function CreateWorkspaceModal({ open, onClose, onCreate }: Props) {
                     <p className="text-[12px] text-zinc-500">Set up a new analytics environment</p>
                   </div>
                 </div>
-                <button type="button" onClick={onClose} className="text-zinc-600 hover:text-zinc-300 transition-colors">
+                <button type="button" onClick={handleClose} className="text-zinc-600 hover:text-zinc-300 transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -131,27 +150,34 @@ export function CreateWorkspaceModal({ open, onClose, onCreate }: Props) {
                   <span className="text-[13px] text-zinc-300 truncate">{name || 'Workspace name…'}</span>
                 </div>
 
+                {/* Error */}
+                {error && (
+                  <p className="text-[12px] text-red-400 -mt-2">{error}</p>
+                )}
+
                 {/* Buttons */}
                 <div className="flex gap-3 pt-1">
                   <button
                     type="button"
-                    onClick={onClose}
-                    className="flex-1 h-10 rounded-xl text-[14px] font-semibold text-zinc-400 bg-white/5 border border-white/8 hover:bg-white/8 hover:text-white transition-all duration-200"
+                    onClick={handleClose}
+                    disabled={loading}
+                    className="flex-1 h-10 rounded-xl text-[14px] font-semibold text-zinc-400 bg-white/5 border border-white/8 hover:bg-white/8 hover:text-white transition-all duration-200 disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <motion.button
                     type="submit"
-                    whileHover={!name.trim() ? {} : { y: -1 }}
-                    whileTap={!name.trim() ? {} : { scale: 0.98 }}
-                    disabled={!name.trim()}
-                    className={`flex-1 h-10 rounded-xl text-[14px] font-semibold text-white transition-all duration-200 ${
-                      name.trim()
+                    whileHover={(!name.trim() || loading) ? {} : { y: -1 }}
+                    whileTap={(!name.trim() || loading) ? {} : { scale: 0.98 }}
+                    disabled={!name.trim() || loading}
+                    className={`flex-1 h-10 rounded-xl text-[14px] font-semibold text-white transition-all duration-200 flex items-center justify-center gap-2 ${
+                      name.trim() && !loading
                         ? 'bg-primary hover:bg-[#2563EB] shadow-[0_0_20px_rgba(59,130,246,0.25)]'
                         : 'bg-primary/30 cursor-not-allowed'
                     }`}
                   >
-                    Create Workspace
+                    {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {loading ? 'Creating…' : 'Create Workspace'}
                   </motion.button>
                 </div>
               </form>

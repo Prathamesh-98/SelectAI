@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { Lock, Eye, EyeOff, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react'
 import { AuthLayout } from './AuthLayout'
 
@@ -28,7 +29,7 @@ function PasswordStrength({ password }: { password: string }) {
   )
 }
 
-export function ResetPasswordPage({ onNavigate }: { onNavigate: (page: string) => void }) {
+export function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [confirm,  setConfirm]  = useState('')
   const [showPw,   setShowPw]   = useState(false)
@@ -81,13 +82,12 @@ export function ResetPasswordPage({ onNavigate }: { onNavigate: (page: string) =
                 Your password has been reset successfully. You can now sign in with your new credentials.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => onNavigate('login')}
+            <Link
+              to="/login"
               className="w-full h-11 rounded-xl font-semibold text-[14px] text-white bg-primary hover:bg-[#2563EB] flex items-center justify-center gap-2 shadow-[0_0_28px_rgba(59,130,246,0.25)] hover:shadow-[0_0_36px_rgba(59,130,246,0.4)] transition-all duration-200"
             >
               Sign in to your account <ArrowRight className="w-4 h-4" />
-            </button>
+            </Link>
           </motion.div>
         ) : (
           /* ── Form ── */
@@ -181,13 +181,12 @@ export function ResetPasswordPage({ onNavigate }: { onNavigate: (page: string) =
 
             {/* Back */}
             <motion.div custom={3} variants={item} initial="hidden" animate="visible" className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => onNavigate('login')}
+              <Link
+                to="/login"
                 className="text-[13px] text-zinc-600 hover:text-zinc-300 transition-colors"
               >
                 ← Back to sign in
-              </button>
+              </Link>
             </motion.div>
           </motion.form>
         )}

@@ -1,20 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence }     from 'framer-motion'
+import { useParams, useNavigate }      from 'react-router-dom'
 import {
   ArrowLeft, FlaskConical, Database, MessageSquare,
   CheckSquare, BarChart2, Lightbulb, Send, Sparkles,
   BookmarkPlus, Clock, Play
 } from 'lucide-react'
 import { SQLCodeBlock }  from '../../design-system/components/SQLCodeBlock'
-import type { Workspace, AnalysisSession, AIMessage, SessionQuery, SessionChart, BarDataPoint } from '../types'
-
-// ─── Props ────────────────────────────────────────────────────────────────────
-interface Props {
-  session:   AnalysisSession
-  workspace: Workspace
-  onBack:    () => void
-  onUpdate:  (patch: Partial<AnalysisSession>) => void
-}
+import { useWorkspace }  from '../WorkspaceContext'
+import type { AnalysisSession, AIMessage, BarDataPoint, Workspace, Dataset } from '../types'
 
 type Tab = 'analyst' | 'queries' | 'charts' | 'insights'
 
@@ -41,7 +35,7 @@ function AIAnalystTab({ session, workspace, onUpdate }: { session: AnalysisSessi
   const [input,      setInput]      = useState('')
   const [responding, setResponding] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const datasets  = workspace.datasets.filter(d => session.datasetIds.includes(d.id))
+  const datasets  = workspace.datasets.filter((d: Dataset) => session.datasetIds.includes(d.id))
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages.length, responding])
 
@@ -300,8 +294,32 @@ function InsightsTab({ session, onUpdate }: { session: AnalysisSession; onUpdate
 }
 
 // ─── Session Detail Page ──────────────────────────────────────────────────────
-export function SessionDetailPage({ session, workspace, onBack, onUpdate }: Props) {
+export function SessionDetailPage() {
+  const { sessionId }  = useParams<{ sessionId: string }>()
+  const navigate       = useNavigate()
+  const { activeWorkspace, getSession, updateSession } = useWorkspace()
+
+  const session = getSession(sessionId ?? '')
+  const workspace = activeWorkspace
+
   const [activeTab, setActiveTab] = useState<Tab>('analyst')
+
+  // ── Session not found ────────────────────────────────────────────────────────
+  if (!session) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <p className="text-[15px] font-semibold text-zinc-400">Session not found</p>
+        <button type="button" onClick={() => navigate('/sessions')}
+          className="h-9 px-5 rounded-xl text-[13px] font-semibold text-white bg-secondary hover:bg-[#7C3AED] transition-colors">
+          Back to Sessions
+        </button>
+      </div>
+    )
+  }
+
+  const onBack   = () => navigate('/sessions')
+  const onUpdate = (patch: Partial<AnalysisSession>) => updateSession(session.id, patch)
+
   const attachedDatasets = workspace.datasets.filter(d => session.datasetIds.includes(d.id))
 
   const TABS: { id: Tab; label: string; icon: React.FC<{ className?: string }>; badge?: number }[] = [
