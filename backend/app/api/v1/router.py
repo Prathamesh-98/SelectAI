@@ -20,7 +20,7 @@ from fastapi import APIRouter
 api_router = APIRouter()
 
 # ── Feature routers (uncomment as implemented) ────────────────────────────────
-# from app.api.v1.endpoints import auth
+from app.api.v1.endpoints import auth  # noqa: E402
 # from app.api.v1.endpoints import users
 # from app.api.v1.endpoints import workspaces
 # from app.api.v1.endpoints import datasets
@@ -28,7 +28,7 @@ api_router = APIRouter()
 # from app.api.v1.endpoints import queries
 # from app.api.v1.endpoints import analytics
 
-# api_router.include_router(auth.router,       prefix="/auth",       tags=["Authentication"])
+api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 # api_router.include_router(users.router,      prefix="/users",      tags=["Users"])
 # api_router.include_router(workspaces.router, prefix="/workspaces", tags=["Workspaces"])
 # api_router.include_router(datasets.router,   prefix="/datasets",   tags=["Datasets"])

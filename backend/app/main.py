@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
@@ -66,6 +66,7 @@ def create_application() -> FastAPI:
     )
 
     _register_middleware(application)
+    _register_exception_handlers(application)
     _register_routers(application)
 
     return application
@@ -90,6 +91,62 @@ def _register_routers(app: FastAPI) -> None:
     from app.api.v1.router import api_router
 
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
+
+def _register_exception_handlers(app: FastAPI) -> None:
+    """
+    Map domain exceptions to HTTP responses globally.
+
+    This means every router automatically converts SelectAI domain
+    exceptions to the correct HTTP status code + ErrorResponse JSON body
+    without any try/except boilerplate in individual route handlers.
+    """
+    from fastapi import status
+    from app.core.exceptions import (
+        ConflictError,
+        ForbiddenError,
+        NotFoundError,
+        RateLimitError,
+        SelectAIError,
+        UnauthorizedError,
+        ValidationError,
+    )
+
+    def _err(status_code: int, exc: SelectAIError) -> JSONResponse:
+        return JSONResponse(
+            status_code=status_code,
+            content={"success": False, "code": exc.code, "message": exc.message},
+        )
+
+    @app.exception_handler(UnauthorizedError)
+    async def _unauthorized(_: Request, exc: UnauthorizedError) -> JSONResponse:
+        response = _err(status.HTTP_401_UNAUTHORIZED, exc)
+        response.headers["WWW-Authenticate"] = "Bearer"
+        return response
+
+    @app.exception_handler(ForbiddenError)
+    async def _forbidden(_: Request, exc: ForbiddenError) -> JSONResponse:
+        return _err(status.HTTP_403_FORBIDDEN, exc)
+
+    @app.exception_handler(NotFoundError)
+    async def _not_found(_: Request, exc: NotFoundError) -> JSONResponse:
+        return _err(status.HTTP_404_NOT_FOUND, exc)
+
+    @app.exception_handler(ConflictError)
+    async def _conflict(_: Request, exc: ConflictError) -> JSONResponse:
+        return _err(status.HTTP_409_CONFLICT, exc)
+
+    @app.exception_handler(ValidationError)
+    async def _validation(_: Request, exc: ValidationError) -> JSONResponse:
+        return _err(status.HTTP_422_UNPROCESSABLE_ENTITY, exc)
+
+    @app.exception_handler(RateLimitError)
+    async def _rate_limit(_: Request, exc: RateLimitError) -> JSONResponse:
+        return _err(status.HTTP_429_TOO_MANY_REQUESTS, exc)
+
+    @app.exception_handler(SelectAIError)
+    async def _generic(_: Request, exc: SelectAIError) -> JSONResponse:
+        return _err(status.HTTP_500_INTERNAL_SERVER_ERROR, exc)
 
 
 # ─── Application instance ─────────────────────────────────────────────────────
