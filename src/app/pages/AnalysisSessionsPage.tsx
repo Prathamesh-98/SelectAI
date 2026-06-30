@@ -1,10 +1,13 @@
 import { useState }          from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate }        from 'react-router-dom'
-import { FlaskConical, Plus, ArrowRight, X, Clock, CheckSquare, MessageSquare, BarChart2, Database } from 'lucide-react'
+import { FlaskConical, Plus, ArrowRight, X, Clock, CheckSquare, MessageSquare, BarChart2, Database, MoreHorizontal, Edit, Trash2 } from 'lucide-react'
 import { useWorkspace }       from '../WorkspaceContext'
 import { useDatasets }        from '../DatasetContext'
+import { useSessions }        from '../SessionContext'
 import type { Workspace, AnalysisSession } from '../types'
+import { Dropdown }           from '../../design-system/components/Dropdown'
+import { EditSessionModal, ArchiveSessionModal } from './SessionModals'
 
 // ─── New Session Modal ────────────────────────────────────────────────────────
 function NewSessionModal({ workspace, open, onClose, onCreate }: {
@@ -18,10 +21,10 @@ function NewSessionModal({ workspace, open, onClose, onCreate }: {
   const toggle = (id: string) =>
     setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
-    onCreate(name.trim(), [...selected], desc.trim())
+    await onCreate(name.trim(), [...selected], desc.trim())
     setName(''); setDesc(''); setSelected(new Set()); onClose()
   }
 
@@ -131,8 +134,12 @@ function SessionCard({ session, workspace, index, onClick }: {
   session: AnalysisSession; workspace: Workspace; index: number; onClick: () => void
 }) {
   const attachedDatasets = workspace.datasets.filter(d => session.datasetIds.includes(d.id))
+  
+  const [editOpen, setEditOpen] = useState(false)
+  const [archiveOpen, setArchiveOpen] = useState(false)
 
   return (
+    <>
     <motion.div custom={index} variants={card} initial="hidden" animate="visible"
       className="bg-white/[0.025] border border-white/6 rounded-2xl p-5 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-200 flex flex-col gap-4 group cursor-pointer"
       onClick={onClick}>
@@ -148,7 +155,27 @@ function SessionCard({ session, workspace, index, onClick }: {
             )}
           </div>
         </div>
-        <ArrowRight className="w-4 h-4 text-zinc-700 flex-shrink-0 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-200 mt-0.5" />
+        <div className="flex items-center gap-1">
+          <ArrowRight className="w-4 h-4 text-zinc-700 flex-shrink-0 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-200 mt-0.5" />
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+            <Dropdown
+              placement="bottom-end"
+              trigger={
+                <button type="button" className="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors">
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+              }
+              items={[
+                { key: 'edit', label: 'Edit', icon: <Edit className="w-3.5 h-3.5" /> },
+                { key: 'archive', label: 'Archive', icon: <Trash2 className="w-3.5 h-3.5" />, danger: true }
+              ]}
+              onSelect={(key) => {
+                if (key === 'edit') setEditOpen(true)
+                if (key === 'archive') setArchiveOpen(true)
+              }}
+            />
+          </div>
+        </div>
       </div>
       {attachedDatasets.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
@@ -169,19 +196,28 @@ function SessionCard({ session, workspace, index, onClick }: {
         Updated {session.updatedAt.includes('T') ? new Date(session.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : session.updatedAt}
       </div>
     </motion.div>
+    <EditSessionModal session={session} open={editOpen} onClose={() => setEditOpen(false)} />
+    <ArchiveSessionModal session={session} open={archiveOpen} onClose={() => setArchiveOpen(false)} />
+    </>
   )
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export function AnalysisSessionsPage() {
-  const { activeWorkspace, createSession } = useWorkspace()
+  const { activeWorkspace } = useWorkspace()
   const { datasets } = useDatasets()
+  const { sessions, createSession, isLoading } = useSessions()
   const navigate  = useNavigate()
   const workspace = {
     ...activeWorkspace,
     datasets: datasets,
   }
   const [modalOpen, setModalOpen] = useState(false)
+
+  const handleCreateSession = async (name: string, datasetIds: string[], description: string) => {
+    const s = await createSession(name, datasetIds, description)
+    navigate(`/analysis/${s.id}`)
+  }
 
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
@@ -190,7 +226,7 @@ export function AnalysisSessionsPage() {
         <div className="flex-1">
           <h1 className="text-[22px] font-bold text-white tracking-tight">Analysis Sessions</h1>
           <p className="text-[13px] text-zinc-500 mt-0.5">
-            {workspace.sessions.length} session{workspace.sessions.length !== 1 ? 's' : ''} in this workspace
+            {sessions.length} session{sessions.length !== 1 ? 's' : ''} in this workspace
           </p>
         </div>
         <button type="button" onClick={() => setModalOpen(true)}
@@ -199,9 +235,13 @@ export function AnalysisSessionsPage() {
         </button>
       </div>
 
-      {workspace.sessions.length > 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center py-20">
+          <svg className="w-8 h-8 text-primary animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+        </div>
+      ) : sessions.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {workspace.sessions.map((s, i) => (
+          {sessions.map((s, i) => (
             <SessionCard
               key={s.id}
               session={s}
@@ -229,7 +269,7 @@ export function AnalysisSessionsPage() {
         workspace={workspace}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onCreate={createSession}
+        onCreate={handleCreateSession}
       />
     </div>
   )

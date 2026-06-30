@@ -12,6 +12,10 @@ import type { Workspace } from '../types'
 import { useAuth }        from '../../auth/useAuth'
 import { useWorkspace }   from '../WorkspaceContext'
 import { useDatasets }    from '../DatasetContext'
+import { useSessions }    from '../SessionContext'
+import type { AnalysisSession } from '../types'
+
+type DashboardWorkspace = Workspace & { sessions: AnalysisSession[] }
 
 // ─── Internal page-change type (subset of routes used within dashboard) ──────────
 // Maps the old AppPage string values to real routes for the sub-components
@@ -27,7 +31,7 @@ const up = {
 }
 
 // ─── 1. Workspace Header ──────────────────────────────────────────────────────
-function WorkspaceHeader({ workspace, onPageChange }: { workspace: Workspace; onPageChange: (p: AppPage) => void }) {
+function WorkspaceHeader({ workspace, onPageChange }: { workspace: DashboardWorkspace; onPageChange: (p: AppPage) => void }) {
   const { user, logout }            = useAuth()
   const [userMenuOpen, setUserMenu] = useState(false)
   const [notifOpen,    setNotif]    = useState(false)
@@ -180,7 +184,7 @@ function Greeting({ hasSessions }: { hasSessions: boolean }) {
 
 // ─── 3. Continue Analysis ─────────────────────────────────────────────────────
 function ContinueAnalysis({ workspace, onOpen, onPageChange }: {
-  workspace: Workspace; onOpen: (id: string) => void; onPageChange: (p: AppPage) => void
+  workspace: DashboardWorkspace; onOpen: (id: string) => void; onPageChange: (p: AppPage) => void
 }) {
   const session = [...workspace.sessions].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]
   const datasets = workspace.datasets.filter(d => session?.datasetIds.includes(d.id))
@@ -302,7 +306,7 @@ function QuickActions({ onPageChange, onCreateWorkspace }: {
 
 // ─── 5. Recent Sessions Timeline ─────────────────────────────────────────────
 function RecentSessionsTimeline({ workspace, onOpen, onPageChange }: {
-  workspace: Workspace; onOpen: (id: string) => void; onPageChange: (p: AppPage) => void
+  workspace: DashboardWorkspace; onOpen: (id: string) => void; onPageChange: (p: AppPage) => void
 }) {
   const sessions = [...workspace.sessions].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 4)
   const datasets = workspace.datasets
@@ -437,7 +441,7 @@ const OVERVIEW_STATS = [
 ] as const
 
 function WorkspaceOverview({ workspace, onPageChange }: {
-  workspace: Workspace; onPageChange: (p: AppPage) => void
+  workspace: DashboardWorkspace; onPageChange: (p: AppPage) => void
 }) {
   return (
     <motion.div custom={5} variants={up} initial="hidden" animate="visible">
@@ -653,14 +657,16 @@ export function WorkspacesPage() {
   const navigate = useNavigate()
   const { activeWorkspace, setCreateWsOpen, isLoading: wsLoading, error: wsError, refetch: refetchWs } = useWorkspace()
   const { datasets, isLoading: dsLoading, error: dsError, refetch: refetchDs } = useDatasets()
+  const { sessions, isLoading: sessLoading, error: sessError, refetch: refetchSess } = useSessions()
 
-  const isLoading = wsLoading || dsLoading
-  const error = wsError || dsError
-  const refetch = () => Promise.all([refetchWs(), refetchDs()])
+  const isLoading = wsLoading || dsLoading || sessLoading
+  const error = wsError || dsError || sessError
+  const refetch = () => Promise.all([refetchWs(), refetchDs(), refetchSess()])
 
-  const workspace = {
+  const workspace: DashboardWorkspace = {
     ...activeWorkspace,
-    datasets: datasets
+    datasets: datasets,
+    sessions: sessions,
   }
 
   // Map legacy AppPage strings to real route paths

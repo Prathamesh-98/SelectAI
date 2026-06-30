@@ -11,6 +11,7 @@ import { AppSidebar }          from './AppSidebar'
 import { CreateWorkspaceModal } from './CreateWorkspaceModal'
 import { WorkspaceProvider, useWorkspace } from './WorkspaceContext'
 import { DatasetProvider } from './DatasetContext'
+import { SessionProvider } from './SessionContext'
 
 // ── Route → title mapping for the mobile topbar ───────────────────────────────
 const PATH_TITLE: Record<string, string> = {
@@ -88,7 +89,9 @@ export default function AppShell() {
   return (
     <WorkspaceProvider>
       <DatasetProvider>
-        <ShellInner />
+        <SessionProvider>
+          <ShellInner />
+        </SessionProvider>
       </DatasetProvider>
     </WorkspaceProvider>
   )

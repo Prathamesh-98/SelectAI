@@ -32,7 +32,6 @@ function dtoToWorkspace(dto: WorkspaceDTO): Workspace {
     description:  dto.description ?? undefined,
     color:        dto.color,
     datasets:     [],
-    sessions:     [],
     savedQueries: [],
     savedCharts:  [],
     history:      [],
@@ -47,7 +46,6 @@ const LOADING_WORKSPACE: Workspace = {
   description:  undefined,
   color:        '#3B82F6',
   datasets:     [],
-  sessions:     [],
   savedQueries: [],
   savedCharts:  [],
   history:      [],
@@ -76,11 +74,6 @@ export interface WorkspaceContextValue {
   deleteWorkspace:  () => Promise<void>
   /** Refetch the workspace list from the server */
   refetch:          () => Promise<void>
-
-  // ── Session actions (local only — backend integration in Phase 6) ──────────
-  createSession:   (name: string, datasetIds: string[], description: string) => void
-  updateSession:   (sessionId: string, patch: Partial<AnalysisSession>) => void
-  getSession:      (sessionId: string) => AnalysisSession | undefined
 }
 
 // ── Context ────────────────────────────────────────────────────────────────────
@@ -198,45 +191,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const refetch = loadWorkspaces
 
-  // ── Session actions (local only — Phase 6 integrates sessions) ───────────────
-
-  const createSession = (name: string, datasetIds: string[], description: string) => {
-    const newSession: AnalysisSession = {
-      id:          `sess-${Date.now()}`,
-      name,
-      description: description || undefined,
-      datasetIds,
-      messages:    [],
-      queries:     [],
-      charts:      [],
-      insights:    [],
-      createdAt:   new Date().toISOString(),
-      updatedAt:   new Date().toISOString(),
-    }
-    setWorkspaces(prev => prev.map(w =>
-      w.id === activeWsId
-        ? { ...w, sessions: [...w.sessions, newSession] }
-        : w
-    ))
-    navigate(`/analysis/${newSession.id}`)
-  }
-
-  const updateSession = (sessionId: string, patch: Partial<AnalysisSession>) => {
-    setWorkspaces(prev => prev.map(w =>
-      w.id === activeWsId
-        ? {
-            ...w,
-            sessions: w.sessions.map(s =>
-              s.id === sessionId ? { ...s, ...patch } : s
-            ),
-          }
-        : w
-    ))
-  }
-
-  const getSession = (sessionId: string): AnalysisSession | undefined =>
-    activeWorkspace.sessions.find(s => s.id === sessionId)
-
   // ── Value ────────────────────────────────────────────────────────────────────
 
   return (
@@ -253,9 +207,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       updateWorkspace,
       deleteWorkspace,
       refetch,
-      createSession,
-      updateSession,
-      getSession,
     }}>
       {children}
     </WorkspaceContext.Provider>

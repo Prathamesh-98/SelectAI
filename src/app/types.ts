@@ -96,7 +96,6 @@ export interface Workspace {
   description?: string
   color:        string
   datasets:     Dataset[]
-  sessions:     AnalysisSession[]
   savedQueries: SavedQuery[]
   savedCharts:  SavedChart[]
   history:      HistoryEntry[]

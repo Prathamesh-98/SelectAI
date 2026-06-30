@@ -4,12 +4,16 @@ import { useParams, useNavigate }      from 'react-router-dom'
 import {
   ArrowLeft, FlaskConical, Database, MessageSquare,
   CheckSquare, BarChart2, Lightbulb, Send, Sparkles,
-  BookmarkPlus, Clock, Play
+  BookmarkPlus, Clock, Play, MoreHorizontal, Edit, Trash2
 } from 'lucide-react'
 import { SQLCodeBlock }  from '../../design-system/components/SQLCodeBlock'
 import { useWorkspace }  from '../WorkspaceContext'
 import { useDatasets }   from '../DatasetContext'
+import { useSessions }   from '../SessionContext'
 import type { AnalysisSession, AIMessage, BarDataPoint, Workspace, Dataset } from '../types'
+import { Dropdown }      from '../../design-system/components/Dropdown'
+import { EditSessionModal, ArchiveSessionModal } from './SessionModals'
+import { MessageProvider, useMessages } from '../MessageContext'
 
 type Tab = 'analyst' | 'queries' | 'charts' | 'insights'
 
@@ -32,7 +36,7 @@ function MiniBar({ data }: { data: BarDataPoint[] }) {
 
 // ─── AI Analyst Tab ───────────────────────────────────────────────────────────
 function AIAnalystTab({ session, workspace, onUpdate }: { session: AnalysisSession; workspace: Workspace; onUpdate: (patch: Partial<AnalysisSession>) => void }) {
-  const [messages,   setMessages]   = useState<AIMessage[]>(session.messages)
+  const { messages, sendMessage, isLoading: messagesLoading } = useMessages()
   const [input,      setInput]      = useState('')
   const [responding, setResponding] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -40,26 +44,17 @@ function AIAnalystTab({ session, workspace, onUpdate }: { session: AnalysisSessi
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages.length, responding])
 
-  const send = () => {
+  const send = async () => {
     if (!input.trim() || responding) return
-    const text = input.trim(); setInput('')
-    const userMsg: AIMessage = { id: `m-${Date.now()}`, role: 'user', content: text }
-    const updated = [...messages, userMsg]
-    setMessages(updated); onUpdate({ messages: updated, updatedAt: new Date().toISOString() })
+    const text = input.trim(); 
+    setInput('')
     setResponding(true)
 
-    setTimeout(() => {
-      const dsName = datasets[0]?.name.replace('.csv', '') ?? 'dataset'
-      const aiMsg: AIMessage = {
-        id:      `m-${Date.now()}-ai`,
-        role:    'ai',
-        content: `I've analysed your question against the attached dataset${datasets.length > 1 ? 's' : ''}. Here is the SQL I generated:`,
-        sql:     `SELECT  *\nFROM    (\n  SELECT\n    *,\n    ROW_NUMBER() OVER (ORDER BY 1) AS rn\n  FROM  ${dsName}\n) sub\nORDER BY rn ASC\nLIMIT 20;`,
-      }
-      const next = [...updated, aiMsg]
-      setMessages(next); onUpdate({ messages: next, updatedAt: new Date().toISOString() })
+    try {
+      await sendMessage(text)
+    } finally {
       setResponding(false)
-    }, 1400)
+    }
   }
 
   const SUGGESTIONS = [
@@ -298,8 +293,9 @@ function InsightsTab({ session, onUpdate }: { session: AnalysisSession; onUpdate
 export function SessionDetailPage() {
   const { sessionId }  = useParams<{ sessionId: string }>()
   const navigate       = useNavigate()
-  const { activeWorkspace, getSession, updateSession } = useWorkspace()
+  const { activeWorkspace } = useWorkspace()
   const { datasets } = useDatasets()
+  const { getSession, updateSession } = useSessions()
 
   const session = getSession(sessionId ?? '')
   const workspace = {
@@ -308,6 +304,8 @@ export function SessionDetailPage() {
   }
 
   const [activeTab, setActiveTab] = useState<Tab>('analyst')
+  const [editOpen, setEditOpen] = useState(false)
+  const [archiveOpen, setArchiveOpen] = useState(false)
 
   // ── Session not found ────────────────────────────────────────────────────────
   if (!session) {
@@ -335,81 +333,103 @@ export function SessionDetailPage() {
   ]
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-
-      {/* ── Header ── */}
-      <div className="flex-shrink-0 border-b border-white/[0.06] bg-[#09090B]">
-        {/* Top bar */}
-        <div className="flex items-center gap-3 px-6 py-4">
-          <button type="button" onClick={onBack}
-            className="flex items-center gap-1.5 text-[12px] font-medium text-zinc-600 hover:text-zinc-300 transition-colors group">
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-150" />
-            Analysis Sessions
-          </button>
-          <span className="text-zinc-800">/</span>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-secondary/15 border border-secondary/20 flex items-center justify-center">
-              <FlaskConical className="w-3 h-3 text-secondary" />
+    <MessageProvider>
+      <div className="flex flex-col h-full overflow-hidden">
+        {/* ── Header ── */}
+        <div className="flex-shrink-0 border-b border-white/[0.06] bg-[#09090B]">
+          {/* Top bar */}
+          <div className="flex items-center gap-3 px-6 py-4">
+            <button type="button" onClick={onBack}
+              className="flex items-center gap-1.5 text-[12px] font-medium text-zinc-600 hover:text-zinc-300 transition-colors group">
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-150" />
+              Analysis Sessions
+            </button>
+            <span className="text-zinc-800">/</span>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-md bg-secondary/15 border border-secondary/20 flex items-center justify-center">
+                <FlaskConical className="w-3 h-3 text-secondary" />
+              </div>
+              <h1 className="text-[15px] font-bold text-white">{session.name}</h1>
             </div>
-            <h1 className="text-[15px] font-bold text-white">{session.name}</h1>
-          </div>
-          {/* Dataset pills */}
-          {attachedDatasets.length > 0 && (
-            <div className="flex items-center gap-1.5 ml-1">
-              {attachedDatasets.map(ds => (
-                <span key={ds.id} className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 bg-accent/8 border border-accent/15 text-accent/70 rounded-md">
-                  <Database className="w-2.5 h-2.5" />{ds.name}
-                </span>
-              ))}
-            </div>
-          )}
-          {/* Timestamp */}
-          <span className="ml-auto flex items-center gap-1 text-[11px] text-zinc-700">
-            <Clock className="w-3 h-3" />
-            Updated {session.updatedAt.includes('T') ? new Date(session.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : session.updatedAt}
-          </span>
-        </div>
-
-        {/* Tab bar */}
-        <div className="flex items-center gap-1 px-4 pb-0">
-          {TABS.map(tab => {
-            const Icon = tab.icon
-            const active = activeTab === tab.id
-            return (
-              <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)}
-                className={`relative flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-medium transition-all duration-150 ${
-                  active ? 'text-white' : 'text-zinc-600 hover:text-zinc-300'
-                }`}>
-                <Icon className="w-3.5 h-3.5" />
-                {tab.label}
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${active ? 'bg-secondary/20 text-secondary' : 'bg-white/6 text-zinc-600'}`}>
-                    {tab.badge}
+            {/* Dataset pills */}
+            {attachedDatasets.length > 0 && (
+              <div className="flex items-center gap-1.5 ml-1">
+                {attachedDatasets.map(ds => (
+                  <span key={ds.id} className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 bg-accent/8 border border-accent/15 text-accent/70 rounded-md">
+                    <Database className="w-2.5 h-2.5" />{ds.name}
                   </span>
-                )}
-                {active && (
-                  <motion.div layoutId="session-tab-indicator"
-                    className="absolute bottom-0 left-4 right-4 h-[2px] bg-secondary rounded-t-full"
-                    transition={{ type: 'spring', stiffness: 400, damping: 40 }} />
-                )}
-              </button>
-            )
-          })}
-        </div>
-      </div>
+                ))}
+              </div>
+            )}
+            {/* Timestamp and Actions */}
+            <div className="ml-auto flex items-center gap-3">
+              <span className="flex items-center gap-1 text-[11px] text-zinc-700">
+                <Clock className="w-3 h-3" />
+                Updated {session.updatedAt.includes('T') ? new Date(session.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : session.updatedAt}
+              </span>
+              <Dropdown
+                placement="bottom-end"
+                trigger={
+                  <button type="button" className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors border border-transparent hover:border-white/10">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                }
+                items={[
+                  { key: 'edit', label: 'Edit Session', icon: <Edit className="w-3.5 h-3.5" /> },
+                  { key: 'archive', label: 'Archive Session', icon: <Trash2 className="w-3.5 h-3.5" />, danger: true }
+                ]}
+                onSelect={(key) => {
+                  if (key === 'edit') setEditOpen(true)
+                  if (key === 'archive') setArchiveOpen(true)
+                }}
+              />
+            </div>
+          </div>
 
-      {/* ── Tab content ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }} className="flex flex-col flex-1 overflow-hidden">
-            {activeTab === 'analyst'  && <AIAnalystTab  session={session} workspace={workspace} onUpdate={onUpdate} />}
-            {activeTab === 'queries'  && <QueriesTab    session={session} onUpdate={onUpdate} />}
-            {activeTab === 'charts'   && <ChartsTab     session={session} />}
-            {activeTab === 'insights' && <InsightsTab   session={session} onUpdate={onUpdate} />}
-          </motion.div>
-        </AnimatePresence>
+          {/* Tab bar */}
+          <div className="flex items-center gap-1 px-4 pb-0">
+            {TABS.map(tab => {
+              const Icon = tab.icon
+              const active = activeTab === tab.id
+              return (
+                <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)}
+                  className={`relative flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-medium transition-all duration-150 ${
+                    active ? 'text-white' : 'text-zinc-600 hover:text-zinc-300'
+                  }`}>
+                  <Icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${active ? 'bg-secondary/20 text-secondary' : 'bg-white/6 text-zinc-600'}`}>
+                      {tab.badge}
+                    </span>
+                  )}
+                  {active && (
+                    <motion.div layoutId="session-tab-indicator"
+                      className="absolute bottom-0 left-4 right-4 h-[2px] bg-secondary rounded-t-full"
+                      transition={{ type: 'spring', stiffness: 400, damping: 40 }} />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ── Tab content ── */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div key={activeTab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }} className="flex flex-col flex-1 overflow-hidden">
+              {activeTab === 'analyst'  && <AIAnalystTab  session={session} workspace={workspace} onUpdate={onUpdate} />}
+              {activeTab === 'queries'  && <QueriesTab    session={session} onUpdate={onUpdate} />}
+              {activeTab === 'charts'   && <ChartsTab     session={session} />}
+              {activeTab === 'insights' && <InsightsTab   session={session} onUpdate={onUpdate} />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <EditSessionModal session={session} open={editOpen} onClose={() => setEditOpen(false)} />
+        <ArchiveSessionModal session={session} open={archiveOpen} onClose={() => setArchiveOpen(false)} onArchived={() => navigate('/sessions')} />
       </div>
-    </div>
+    </MessageProvider>
   )
 }

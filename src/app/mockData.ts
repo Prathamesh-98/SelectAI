@@ -11,7 +11,7 @@ export const WORKSPACE_COLORS = [
   { label: 'Orange',  value: '#F97316' },
 ]
 
-export const initialWorkspaces: Workspace[] = [
+export const initialWorkspaces: any[] = [
   // ── 1. Marketing Analytics ────────────────────────────────────────────────
   {
     id: 'ws-marketing', name: 'Marketing Analytics',

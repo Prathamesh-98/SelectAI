@@ -14,7 +14,10 @@ import { AvatarMenu }        from '../design-system/components/AvatarMenu'
 import { useAuth }           from '../auth/useAuth'
 import { useWorkspace }      from './WorkspaceContext'
 import { useDatasets }       from './DatasetContext'
-import type { Workspace }    from './types'
+import { useSessions }       from './SessionContext'
+import type { Workspace, AnalysisSession }    from './types'
+
+type DashboardWorkspace = Workspace & { sessions: AnalysisSession[] }
 
 // ── Nav definitions ───────────────────────────────────────────────────────────
 
@@ -22,7 +25,7 @@ interface NavDef {
   label:   string
   icon:    React.FC<{ className?: string }>
   path:    string
-  badge?:  (ws: Workspace) => number | null
+  badge?:  (ws: DashboardWorkspace) => number | null
   section: 'workspace' | 'library' | 'account'
   // extra paths that should also count as "active" for this item
   matchPaths?: string[]
@@ -56,7 +59,7 @@ interface Props {
 // ── Nav item ──────────────────────────────────────────────────────────────────
 
 function NavItem({ def, workspace, onClick }: {
-  def: NavDef; workspace: Workspace; onClick: () => void
+  def: NavDef; workspace: DashboardWorkspace; onClick: () => void
 }) {
   const Icon  = def.icon
   const count = def.badge?.(workspace) ?? null
@@ -93,10 +96,12 @@ function SidebarContent({ onMobileClose }: { onMobileClose: () => void }) {
     switchWorkspace, setCreateWsOpen,
   } = useWorkspace()
   const { datasets } = useDatasets()
+  const { sessions } = useSessions()
 
-  const workspace = {
+  const workspace: DashboardWorkspace = {
     ...activeWorkspace,
     datasets: datasets,
+    sessions: sessions,
   }
 
   const displayName = user?.full_name ?? 'User'
