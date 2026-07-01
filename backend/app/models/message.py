@@ -71,6 +71,12 @@ class Message(UUIDMixin, TimestampMixin, Base):
         server_default=sa.false(),
         comment="True when the AI response contains a SQL block",
     )
+    generated_sql: Mapped[str | None] = mapped_column(
+        sa.Text,
+        nullable=True,
+        default=None,
+        comment="Extracted SQL query from the assistant response",
+    )
     model_name: Mapped[str | None] = mapped_column(
         sa.String(100),
         nullable=True,

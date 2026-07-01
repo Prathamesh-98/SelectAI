@@ -66,6 +66,8 @@ class Settings(BaseSettings):
     CORS_ALLOW_CREDENTIALS: bool = True
 
     # ── AI Providers ──────────────────────────────────────────────────────────
+    AI_PROVIDER: Literal["mock", "gemini", "openai", "anthropic"] = "mock"
+    GEMINI_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
 

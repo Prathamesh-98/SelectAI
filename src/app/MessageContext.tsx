@@ -66,15 +66,9 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
       // Update temp message with real id
       setMessages(prev => prev.map(m => m.id === tempId ? savedUserMsg : m))
 
-      // Simulate assistant reply
-      const assistantReply = "I'm your AI analyst. AI integration will be implemented in the next phase."
-      const savedAiMsg = await messagesApi.create({
-        session_id: sessionId,
-        role: 'assistant',
-        content: assistantReply
-      })
-      
-      setMessages(prev => [...prev, savedAiMsg])
+      // The backend now generates the assistant reply automatically when a user message is sent.
+      // Refresh the message list to get the assistant's reply.
+      await fetchMessages(sessionId)
     } catch (err: any) {
       console.error('Failed to send message:', err)
       // Rollback optimistic update

@@ -10,6 +10,7 @@ from app.models.enums import MessageRole
 class MessageBase(BaseModel):
     content: str = Field(..., description="Full message text")
     has_sql: bool = Field(False, description="True when the response contains a SQL block")
+    generated_sql: Optional[str] = Field(None, description="Extracted SQL query from the assistant response")
     model_name: Optional[str] = Field(None, description="AI model identifier")
     tokens_used: Optional[int] = Field(None, description="Total tokens consumed")
 

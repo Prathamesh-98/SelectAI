@@ -9,9 +9,12 @@ from app.models.enums import ActivityType
 from app.models.message import Message
 from app.models.activity_log import ActivityLog
 from app.repositories.analysis_session_repository import AnalysisSessionRepository
+from app.repositories.dataset_repository import DatasetRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.schemas.message import MessageCreate
+from app.services.ai.ai_service import AIService
+from app.models.enums import MessageRole
 
 
 class MessageService:
@@ -20,6 +23,7 @@ class MessageService:
         self.message_repo = MessageRepository(session)
         self.session_repo = AnalysisSessionRepository(session)
         self.workspace_repo = WorkspaceRepository(session)
+        self.dataset_repo = DatasetRepository(session)
 
     async def _log(
         self,
@@ -70,6 +74,40 @@ class MessageService:
             )
             
         message = await self.message_repo.create(obj_in)
+        
+        # If the user sent a message, we should generate an AI response
+        if obj_in.role == MessageRole.USER:
+            # 1. Fetch full context
+            analysis_session = await self.session_repo.get_by_id_global(session_id)
+            if analysis_session:
+                workspace = await self.workspace_repo.get_by_id(analysis_session.workspace_id, uuid.UUID(user_id_str))
+                history = await self.message_repo.list_by_session(session_id)
+                
+                # Fetch actual dataset models
+                dataset_ids = {assoc.dataset_id for assoc in analysis_session.session_datasets}
+                all_ws_datasets = await self.dataset_repo.list_by_workspace(analysis_session.workspace_id)
+                datasets = [ds for ds in all_ws_datasets if ds.id in dataset_ids]
+                
+                # Let's initialize AIService
+                ai_service = AIService(self.session)
+                
+                assistant_text, generated_sql = await ai_service.generate_response(
+                    workspace=workspace,
+                    analysis_session=analysis_session,
+                    datasets=datasets,
+                    history=history,
+                    user_message=obj_in.content
+                )
+                
+                # Save assistant message
+                assistant_msg_in = MessageCreate(
+                    session_id=session_id,
+                    role=MessageRole.ASSISTANT,
+                    content=assistant_text,
+                    generated_sql=generated_sql,
+                    has_sql=bool(generated_sql)
+                )
+                await self.message_repo.create(assistant_msg_in)
         
         if message.has_sql:
             analysis_session = await self.session_repo.get_by_id_global(session_id)

@@ -16,7 +16,7 @@ export interface AIMessage {
   id:      string
   role:    'user' | 'ai'
   content: string
-  sql?:    string
+  generated_sql?: string
 }
 
 // ─── Analysis Session ─────────────────────────────────────────────────────────

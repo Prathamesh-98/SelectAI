@@ -15,7 +15,7 @@ export const messagesApi = {
       id: msg.id,
       role: msg.role === 'assistant' ? 'ai' : msg.role,
       content: msg.content,
-      sql: msg.has_sql ? '' : undefined // we don't have SQL payload right now, handled later
+      generated_sql: msg.generated_sql || undefined
     }))
   },
   
@@ -25,7 +25,7 @@ export const messagesApi = {
       id: data.id,
       role: data.role === 'assistant' ? 'ai' : data.role,
       content: data.content,
-      sql: data.has_sql ? '' : undefined
+      generated_sql: data.generated_sql || undefined
     }
   }
 }
