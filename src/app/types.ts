@@ -62,13 +62,53 @@ export interface AnalysisSession {
 // ─── Workspace-level library ──────────────────────────────────────────────────
 
 export interface SavedQuery {
-  id:          string
-  title:       string
-  sql:         string
-  datasetName: string
-  createdAt:   string
-  runCount:    number
-  sessionId?:  string   // which session it was saved from
+  id: string
+  workspace_id: string
+  session_id?: string
+  created_by?: string
+  created_by_name?: string
+  
+  name: string
+  description?: string
+  user_prompt: string
+  generated_sql: string
+  sql_hash: string
+  
+  tags: string[]
+  is_favorite: boolean
+  is_pinned: boolean
+  
+  version: number
+  execution_count: number
+  last_executed?: string
+  
+  created_at: string
+  updated_at: string
+}
+
+export interface SavedQueryRun {
+  id: string
+  saved_query_id: string
+  execution_time_ms?: number
+  row_count?: number
+  status: 'success' | 'failed'
+  error_message?: string
+  executed_at: string
+}
+
+export interface SavedQueryListResponse {
+  data: SavedQuery[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface SavedQueryExecutionResult {
+  execution_result: any
+  execution_time_ms?: number
+  chart_data: any
+  insight_data: any
+  error?: string
 }
 
 export interface BarDataPoint {
@@ -111,4 +151,41 @@ export interface Workspace {
   savedCharts:  SavedChart[]
   history:      HistoryEntry[]
   createdAt:    string
+}
+
+export interface DashboardWidget {
+  id: string
+  dashboard_id: string
+  widget_type: 'chart' | 'table' | 'kpi' | 'insight'
+  title: string
+  saved_query_id: string
+  layout: any
+  settings: any
+  created_at: string
+}
+
+export interface Dashboard {
+  id: string
+  workspace_id: string
+  name: string
+  description?: string
+  layout: any[]
+  widgets: DashboardWidget[]
+  created_at: string
+  updated_at: string
+}
+
+export interface Report {
+  id: string
+  workspace_id: string
+  saved_query_id?: string
+  created_by?: string
+  format: 'pdf' | 'excel' | 'csv' | 'png'
+  file_name: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  error_message?: string
+  download_count: number
+  metadata_info: any
+  created_at: string
+  expires_at?: string
 }

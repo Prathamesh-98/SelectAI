@@ -14,7 +14,10 @@ import { WorkspacesPage }       from './app/pages/WorkspacesPage'
 import { DatasetsPage }         from './app/pages/DatasetsPage'
 import { AnalysisSessionsPage } from './app/pages/AnalysisSessionsPage'
 import { SessionDetailPage }    from './app/pages/SessionDetailPage'
-import { QueryLibraryPage }     from './app/pages/QueryLibraryPage'
+import { SavedQueriesPage }     from './app/pages/SavedQueriesPage'
+import { DashboardsPage }       from './app/pages/DashboardsPage'
+import { DashboardEditor }      from './app/pages/DashboardEditor'
+import { ReportHistoryPage }    from './app/pages/ReportHistoryPage'
 import { AnalyticsPage }        from './app/pages/AnalyticsPage'
 import { HistoryPage }          from './app/pages/HistoryPage'
 import { SettingsPage }         from './app/pages/SettingsPage'
@@ -56,7 +59,10 @@ export const router = createBrowserRouter([
           { path: '/datasets',               element: <DatasetsPage /> },
           { path: '/sessions',               element: <AnalysisSessionsPage /> },
           { path: '/analysis/:sessionId',    element: <SessionDetailPage /> },
-          { path: '/queries',                element: <QueryLibraryPage /> },
+          { path: '/saved-queries',          element: <SavedQueriesPage /> },
+          { path: '/dashboards',             element: <DashboardsPage /> },
+          { path: '/dashboards/:id',         element: <DashboardEditor /> },
+          { path: '/exports',                element: <ReportHistoryPage /> },
           { path: '/analytics',              element: <AnalyticsPage /> },
           { path: '/history',                element: <HistoryPage /> },
           { path: '/settings',               element: <SettingsPage /> },

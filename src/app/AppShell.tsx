@@ -12,6 +12,8 @@ import { CreateWorkspaceModal } from './CreateWorkspaceModal'
 import { WorkspaceProvider, useWorkspace } from './WorkspaceContext'
 import { DatasetProvider } from './DatasetContext'
 import { SessionProvider } from './SessionContext'
+import { SavedQueryProvider } from './SavedQueryContext'
+import { DashboardProvider } from './DashboardContext'
 
 // ── Route → title mapping for the mobile topbar ───────────────────────────────
 const PATH_TITLE: Record<string, string> = {
@@ -90,7 +92,11 @@ export default function AppShell() {
     <WorkspaceProvider>
       <DatasetProvider>
         <SessionProvider>
-          <ShellInner />
+          <SavedQueryProvider>
+            <DashboardProvider>
+              <ShellInner />
+            </DashboardProvider>
+          </SavedQueryProvider>
         </SessionProvider>
       </DatasetProvider>
     </WorkspaceProvider>

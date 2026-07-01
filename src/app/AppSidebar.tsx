@@ -6,8 +6,9 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { NavLink, useNavigate }    from 'react-router-dom'
 import {
-  LayoutDashboard, FolderOpen, FlaskConical, BookMarked,
-  BarChart2, Clock, Settings, X, Database, LogOut,
+  Database, MessageSquare, BookMarked, BarChart2, 
+  Clock, Settings, Sparkles, ChevronDown, Plus, LogOut, LayoutDashboard,
+  FolderOpen, FlaskConical, X, DownloadCloud
 } from 'lucide-react'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 import { AvatarMenu }        from '../design-system/components/AvatarMenu'
@@ -37,7 +38,9 @@ const NAV: NavDef[] = [
   { path: '/sessions',  label: 'Analysis Sessions', icon: FlaskConical, section: 'workspace',
     badge: ws => ws.sessions.length || null,
     matchPaths: ['/analysis'] },                       // /analysis/:id also highlights Sessions
-  { path: '/queries',   label: 'Query Library',     icon: BookMarked,  section: 'library',   badge: ws => ws.savedQueries.length || null },
+  { path: '/saved-queries',   label: 'Saved Queries',     icon: BookMarked,  section: 'workspace' },
+  { path: '/dashboards',      label: 'Dashboards',        icon: LayoutDashboard, section: 'workspace' },
+  { path: '/exports',         label: 'Exports & Reports', icon: DownloadCloud, section: 'workspace' },
   { path: '/analytics', label: 'Analytics',         icon: BarChart2,   section: 'library',   badge: ws => ws.savedCharts.length  || null },
   { path: '/history',   label: 'History',           icon: Clock,       section: 'library'   },
   { path: '/settings',  label: 'Settings',          icon: Settings,    section: 'account'   },

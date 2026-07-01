@@ -24,7 +24,12 @@ from app.models.analysis_session_dataset import AnalysisSessionDataset  # noqa: 
 from app.models.message import Message  # noqa: F401
 from app.models.generated_query import GeneratedQuery  # noqa: F401
 from app.models.saved_visualization import SavedVisualization  # noqa: F401
+from app.models.saved_query import SavedQuery  # noqa: F401
+from app.models.saved_query_run import SavedQueryRun  # noqa: F401
 from app.models.activity_log import ActivityLog  # noqa: F401
+from app.models.dashboard import Dashboard  # noqa: F401
+from app.models.dashboard_widget import DashboardWidget  # noqa: F401
+from app.models.report import Report  # noqa: F401
 
 __all__ = [
     # Enums
@@ -44,5 +49,10 @@ __all__ = [
     "Message",
     "GeneratedQuery",
     "SavedVisualization",
+    "SavedQuery",
+    "SavedQueryRun",
     "ActivityLog",
+    "Dashboard",
+    "DashboardWidget",
+    "Report",
 ]

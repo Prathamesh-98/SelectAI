@@ -4,7 +4,7 @@ import { useParams, useNavigate }      from 'react-router-dom'
 import {
   ArrowLeft, FlaskConical, Database, MessageSquare,
   CheckSquare, BarChart2, Lightbulb, Send, Sparkles,
-  BookmarkPlus, Clock, Play, MoreHorizontal, Edit, Trash2
+  BookmarkPlus, Clock, Play, MoreHorizontal, Edit, Trash2, Download
 } from 'lucide-react'
 import { SQLCodeBlock }  from '../../design-system/components/SQLCodeBlock'
 import { QueryChart }    from '../../design-system/components/QueryChart'
@@ -16,6 +16,9 @@ import type { AnalysisSession, AIMessage, BarDataPoint, Workspace, Dataset } fro
 import { Dropdown }      from '../../design-system/components/Dropdown'
 import { EditSessionModal, ArchiveSessionModal } from './SessionModals'
 import { MessageProvider, useMessages } from '../MessageContext'
+import { ExportModal } from '../../design-system/components/ExportModal'
+
+export { QueryChart, InsightsCard }
 
 type Tab = 'analyst' | 'queries' | 'charts' | 'insights'
 
@@ -36,11 +39,47 @@ function MiniBar({ data }: { data: BarDataPoint[] }) {
   )
 }
 
+export function ResultTable({ result }: { result: any }) {
+  return (
+    <div className="w-full mt-3 bg-[#0A0A0C] border border-white/10 rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 bg-white/5 border-b border-white/5">
+        <span className="text-[11px] font-semibold text-zinc-400">Query Results</span>
+        <div className="flex gap-3 text-[10px] text-zinc-500">
+          <span>Rows: {result.row_count}</span>
+        </div>
+      </div>
+      <div className="overflow-x-auto max-h-[300px]">
+        <table className="w-full text-left text-[12px] whitespace-nowrap">
+          <thead className="bg-white/5 sticky top-0 shadow-sm">
+            <tr>
+              {result.columns?.map((col: string, i: number) => (
+                <th key={i} className="px-3 py-2 font-semibold text-zinc-300 border-b border-white/5">{col}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {result.rows?.map((row: any[], i: number) => (
+              <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                {row.map((val: any, j: number) => (
+                  <td key={j} className="px-3 py-2 text-zinc-400">
+                    {val === null ? <span className="text-zinc-600 italic">null</span> : String(val)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 // ─── AI Analyst Tab ───────────────────────────────────────────────────────────
 function AIAnalystTab({ session, workspace, onUpdate }: { session: AnalysisSession; workspace: Workspace; onUpdate: (patch: Partial<AnalysisSession>) => void }) {
   const { messages, sendMessage, isLoading: messagesLoading } = useMessages()
   const [input,      setInput]      = useState('')
   const [responding, setResponding] = useState(false)
+  const [exportMsgId, setExportMsgId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const datasets  = workspace.datasets.filter((d: Dataset) => session.datasetIds.includes(d.id))
 
@@ -117,37 +156,7 @@ function AIAnalystTab({ session, workspace, onUpdate }: { session: AnalysisSessi
                   {msg.generated_sql && <div className="w-full"><SQLCodeBlock code={msg.generated_sql} showLineNums={false} maxHeight={180} /></div>}
                   
                   {msg.execution_result && !msg.execution_result.error && (
-                    <div className="w-full mt-3 bg-[#0A0A0C] border border-white/10 rounded-xl overflow-hidden">
-                      <div className="flex items-center justify-between px-3 py-2 bg-white/5 border-b border-white/5">
-                        <span className="text-[11px] font-semibold text-zinc-400">Query Results</span>
-                        <div className="flex gap-3 text-[10px] text-zinc-500">
-                          <span>Rows: {msg.execution_result.row_count}</span>
-                          <span>Time: {msg.execution_time_ms}ms</span>
-                        </div>
-                      </div>
-                      <div className="overflow-x-auto max-h-[300px]">
-                        <table className="w-full text-left text-[12px] whitespace-nowrap">
-                          <thead className="bg-white/5 sticky top-0 shadow-sm">
-                            <tr>
-                              {msg.execution_result.columns?.map((col: string, i: number) => (
-                                <th key={i} className="px-3 py-2 font-semibold text-zinc-300 border-b border-white/5">{col}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-white/5">
-                            {msg.execution_result.rows?.map((row: any[], i: number) => (
-                              <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                                {row.map((val: any, j: number) => (
-                                  <td key={j} className="px-3 py-2 text-zinc-400">
-                                    {val === null ? <span className="text-zinc-600 italic">null</span> : String(val)}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
+                    <ResultTable result={msg.execution_result} />
                   )}
                   
                   {msg.chart_data && msg.chart_data.chart_type !== 'none' && (
@@ -165,6 +174,17 @@ function AIAnalystTab({ session, workspace, onUpdate }: { session: AnalysisSessi
                   {msg.execution_result?.error && (
                     <div className="w-full mt-1 bg-orange-500/5 border border-orange-500/10 p-3 rounded-xl text-[12px] text-orange-400/90 break-words font-mono">
                       {msg.execution_result.error}
+                    </div>
+                  )}
+
+                  {msg.execution_result && !msg.execution_result.error && (
+                    <div className="flex w-full justify-end mt-1">
+                      <button 
+                        onClick={() => setExportMsgId(msg.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 transition-colors"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Export Results
+                      </button>
                     </div>
                   )}
                 </div>
@@ -203,6 +223,23 @@ function AIAnalystTab({ session, workspace, onUpdate }: { session: AnalysisSessi
           </button>
         </div>
       </div>
+
+      {exportMsgId && (
+        <ExportModal
+          isOpen={!!exportMsgId}
+          onClose={() => setExportMsgId(null)}
+          payload={{
+            workspace_id: workspace.id,
+            execution_result: messages.find(m => m.id === exportMsgId)?.execution_result?.rows || [],
+            insight_data: messages.find(m => m.id === exportMsgId)?.insight_data,
+            execution_time_ms: messages.find(m => m.id === exportMsgId)?.execution_result?.execution_time_ms,
+            row_count: messages.find(m => m.id === exportMsgId)?.execution_result?.rows?.length || 0,
+            workspace_name: workspace.name,
+            user_question: messages.find(m => m.id === exportMsgId)?.content,
+            generated_sql: messages.find(m => m.id === exportMsgId)?.generated_sql
+          }}
+        />
+      )}
     </div>
   )
 }
