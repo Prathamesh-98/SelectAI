@@ -14,6 +14,8 @@ from app.repositories.message_repository import MessageRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.schemas.message import MessageCreate
 from app.services.ai.ai_service import AIService
+from app.services.sql.sql_executor import SQLExecutor
+from app.services.charts.chart_recommender import ChartRecommender
 from app.models.enums import MessageRole
 
 
@@ -91,7 +93,7 @@ class MessageService:
                 # Let's initialize AIService
                 ai_service = AIService(self.session)
                 
-                assistant_text, generated_sql = await ai_service.generate_response(
+                assistant_text, generated_sql, validation_error = await ai_service.generate_response(
                     workspace=workspace,
                     analysis_session=analysis_session,
                     datasets=datasets,
@@ -99,12 +101,25 @@ class MessageService:
                     user_message=obj_in.content
                 )
                 
+                # 3. Execute SQL automatically if validation passed
+                execution_result = None
+                execution_time_ms = None
+                chart_data = None
+                
+                if generated_sql and not validation_error:
+                    execution_result, execution_time_ms = SQLExecutor.execute(generated_sql, datasets)
+                    chart_data = ChartRecommender.generate_chart_data(execution_result)
+                
                 # Save assistant message
                 assistant_msg_in = MessageCreate(
                     session_id=session_id,
                     role=MessageRole.ASSISTANT,
                     content=assistant_text,
                     generated_sql=generated_sql,
+                    validation_error=validation_error,
+                    execution_result=execution_result,
+                    execution_time_ms=execution_time_ms,
+                    chart_data=chart_data,
                     has_sql=bool(generated_sql)
                 )
                 await self.message_repo.create(assistant_msg_in)

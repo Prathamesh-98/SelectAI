@@ -15,8 +15,13 @@ export interface Dataset {
 export interface AIMessage {
   id:      string
   role:    'user' | 'ai'
+  has_sql: boolean
   content: string
   generated_sql?: string
+  validation_error?: string
+  execution_result?: any
+  execution_time_ms?: number
+  chart_data?: any
 }
 
 // ─── Analysis Session ─────────────────────────────────────────────────────────

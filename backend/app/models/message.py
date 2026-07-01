@@ -11,7 +11,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base, TimestampMixin, UUIDMixin
@@ -77,11 +77,35 @@ class Message(UUIDMixin, TimestampMixin, Base):
         default=None,
         comment="Extracted SQL query from the assistant response",
     )
+    validation_error: Mapped[str | None] = mapped_column(
+        sa.Text,
+        nullable=True,
+        default=None,
+        comment="Detailed error message if the generated SQL failed validation",
+    )
+    execution_result: Mapped[dict | None] = mapped_column(
+        JSONB,
+        nullable=True,
+        default=None,
+        comment="JSON object containing rows, columns, and row_count of the executed query",
+    )
+    execution_time_ms: Mapped[int | None] = mapped_column(
+        sa.Integer,
+        nullable=True,
+        default=None,
+        comment="Time taken to execute the query in milliseconds",
+    )
+    chart_data: Mapped[dict | None] = mapped_column(
+        JSONB,
+        nullable=True,
+        default=None,
+        comment="Automatic visualization metadata generated from execution_result",
+    )
     model_name: Mapped[str | None] = mapped_column(
         sa.String(100),
         nullable=True,
         default=None,
-        comment="AI model identifier, e.g. 'gpt-4o', 'claude-3-5-sonnet-20241022'",
+        comment="AI model identifier",
     )
     tokens_used: Mapped[int | None] = mapped_column(
         sa.Integer,

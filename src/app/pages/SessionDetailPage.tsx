@@ -7,6 +7,7 @@ import {
   BookmarkPlus, Clock, Play, MoreHorizontal, Edit, Trash2
 } from 'lucide-react'
 import { SQLCodeBlock }  from '../../design-system/components/SQLCodeBlock'
+import { QueryChart }    from '../../design-system/components/QueryChart'
 import { useWorkspace }  from '../WorkspaceContext'
 import { useDatasets }   from '../DatasetContext'
 import { useSessions }   from '../SessionContext'
@@ -111,7 +112,54 @@ function AIAnalystTab({ session, workspace, onUpdate }: { session: AnalysisSessi
                       ? 'bg-primary text-white rounded-br-sm'
                       : 'bg-white/[0.05] border border-white/8 text-zinc-300 rounded-bl-sm'
                   }`}>{msg.content}</div>
+                  
                   {msg.generated_sql && <div className="w-full"><SQLCodeBlock code={msg.generated_sql} showLineNums={false} maxHeight={180} /></div>}
+                  
+                  {msg.execution_result && !msg.execution_result.error && (
+                    <div className="w-full mt-3 bg-[#0A0A0C] border border-white/10 rounded-xl overflow-hidden">
+                      <div className="flex items-center justify-between px-3 py-2 bg-white/5 border-b border-white/5">
+                        <span className="text-[11px] font-semibold text-zinc-400">Query Results</span>
+                        <div className="flex gap-3 text-[10px] text-zinc-500">
+                          <span>Rows: {msg.execution_result.row_count}</span>
+                          <span>Time: {msg.execution_time_ms}ms</span>
+                        </div>
+                      </div>
+                      <div className="overflow-x-auto max-h-[300px]">
+                        <table className="w-full text-left text-[12px] whitespace-nowrap">
+                          <thead className="bg-white/5 sticky top-0 shadow-sm">
+                            <tr>
+                              {msg.execution_result.columns?.map((col: string, i: number) => (
+                                <th key={i} className="px-3 py-2 font-semibold text-zinc-300 border-b border-white/5">{col}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5">
+                            {msg.execution_result.rows?.map((row: any[], i: number) => (
+                              <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                                {row.map((val: any, j: number) => (
+                                  <td key={j} className="px-3 py-2 text-zinc-400">
+                                    {val === null ? <span className="text-zinc-600 italic">null</span> : String(val)}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {msg.chart_data && msg.chart_data.chart_type !== 'none' && (
+                    <div className="w-full mt-2">
+                      <QueryChart data={msg.chart_data} />
+                    </div>
+                  )}
+                  
+                  {msg.execution_result?.error && (
+                    <div className="w-full mt-1 bg-orange-500/5 border border-orange-500/10 p-3 rounded-xl text-[12px] text-orange-400/90 break-words font-mono">
+                      {msg.execution_result.error}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -155,7 +203,7 @@ function AIAnalystTab({ session, workspace, onUpdate }: { session: AnalysisSessi
 // ─── Queries Tab ──────────────────────────────────────────────────────────────
 function QueriesTab({ session, onUpdate }: { session: AnalysisSession; onUpdate: (patch: Partial<AnalysisSession>) => void }) {
   const { messages } = useMessages()
-  const sqlMessages = messages.filter(m => m.generated_sql)
+  const sqlMessages = messages.filter(m => m.generated_sql || m.validation_error)
   const [running, setRunning] = useState<string | null>(null)
   const run = (id: string) => { setRunning(id); setTimeout(() => setRunning(null), 1600) }
 
@@ -172,19 +220,42 @@ function QueriesTab({ session, onUpdate }: { session: AnalysisSession; onUpdate:
           {/* AI Generated Queries from Chat */}
           {sqlMessages.map((msg, i) => (
             <motion.div key={`sql-${msg.id}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06, duration: 0.3 }}
-              className="bg-white/[0.025] border border-white/6 rounded-2xl p-5 space-y-4">
+              className={`border rounded-2xl p-5 space-y-4 ${msg.validation_error ? 'bg-red-500/[0.02] border-red-500/10' : 'bg-white/[0.025] border-white/6'}`}>
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <h3 className="text-[14px] font-semibold text-white">Generated Query</h3>
                   <p className="text-[11px] text-zinc-700 mt-0.5 flex items-center gap-1"><Sparkles className="w-3 h-3" />From AI Analyst</p>
                 </div>
-                <button type="button" disabled
-                  className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-semibold bg-white/5 text-zinc-600 cursor-not-allowed">
-                  <Play className="w-3 h-3" />
-                  Run (Execution disabled)
-                </button>
+                {msg.validation_error ? (
+                  <div className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-semibold bg-red-500/10 text-red-400">
+                    ❌ Validation Failed
+                  </div>
+                ) : msg.execution_result?.error ? (
+                  <div className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-semibold bg-orange-500/10 text-orange-400">
+                    ⚠️ Execution Failed
+                  </div>
+                ) : msg.execution_result ? (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-semibold bg-emerald-500/10 text-emerald-400">
+                      ✅ Success ({msg.execution_time_ms}ms)
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-semibold bg-emerald-500/10 text-emerald-400">
+                      ✅ Valid SQL
+                    </div>
+                  </div>
+                )}
               </div>
-              <SQLCodeBlock code={msg.generated_sql!} showLineNums={false} maxHeight={140} />
+              
+              {msg.validation_error ? (
+                <div className="bg-red-500/5 border border-red-500/10 p-3 rounded-xl text-[13px] text-red-400/90 break-words font-mono">
+                  {msg.validation_error}
+                </div>
+              ) : (
+                <SQLCodeBlock code={msg.generated_sql!} showLineNums={false} maxHeight={140} />
+              )}
             </motion.div>
           ))}
 
@@ -350,7 +421,7 @@ function SessionDetailContent() {
   const attachedDatasets = workspace.datasets.filter(d => session.datasetIds.includes(d.id))
 
   const { messages } = useMessages() // Added to get active messages count for Queries tab badge
-  const sqlMessages = messages.filter(m => m.generated_sql)
+  const sqlMessages = messages.filter(m => m.generated_sql || m.validation_error)
 
   const TABS: { id: Tab; label: string; icon: React.FC<{ className?: string }>; badge?: number }[] = [
     { id: 'analyst',  label: 'AI Analyst',     icon: MessageSquare, badge: messages.length || undefined },

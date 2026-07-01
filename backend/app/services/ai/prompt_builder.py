@@ -4,6 +4,7 @@ from app.models.analysis_session import AnalysisSession
 from app.models.dataset import Dataset
 from app.models.message import Message
 from app.models.workspace import Workspace
+from app.services.sql.duckdb_manager import DuckDBManager
 
 class PromptBuilder:
     """Constructs prompts for the AI Provider."""
@@ -44,13 +45,14 @@ class PromptBuilder:
             prompt_parts.append("\nAvailable Datasets:")
             for ds in datasets:
                 ds_name = getattr(ds, "name", "Unknown")
+                table_name = DuckDBManager.sanitize_table_name(ds_name) if ds_name != "Unknown" else "Unknown"
                 rows = getattr(ds, "row_count", None)
                 rows_str = str(rows) if rows is not None else "Unknown"
                 size = getattr(ds, "file_size_bytes", None)
                 size_str = f"{size} bytes" if size is not None else "Unknown"
                 
                 prompt_parts.append("Dataset:")
-                prompt_parts.append(ds_name)
+                prompt_parts.append(f"{ds_name} (Query as table: {table_name})")
                 prompt_parts.append("\nRows:")
                 prompt_parts.append(rows_str)
                 prompt_parts.append("\nColumns:\n")

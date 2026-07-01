@@ -15,7 +15,12 @@ export const messagesApi = {
       id: msg.id,
       role: msg.role === 'assistant' ? 'ai' : msg.role,
       content: msg.content,
-      generated_sql: msg.generated_sql || undefined
+      has_sql: msg.has_sql || false,
+      generated_sql: msg.generated_sql || undefined,
+      validation_error: msg.validation_error || undefined,
+      execution_result: msg.execution_result || undefined,
+      execution_time_ms: msg.execution_time_ms || undefined,
+      chart_data: msg.chart_data || undefined
     }))
   },
   
@@ -25,7 +30,12 @@ export const messagesApi = {
       id: data.id,
       role: data.role === 'assistant' ? 'ai' : data.role,
       content: data.content,
-      generated_sql: data.generated_sql || undefined
+      has_sql: data.has_sql || false,
+      generated_sql: data.generated_sql || undefined,
+      validation_error: data.validation_error || undefined,
+      execution_result: data.execution_result || undefined,
+      execution_time_ms: data.execution_time_ms || undefined,
+      chart_data: data.chart_data || undefined
     }
   }
 }

@@ -18,6 +18,11 @@ class MessageRepository:
             role=obj_in.role,
             content=obj_in.content,
             has_sql=obj_in.has_sql,
+            generated_sql=obj_in.generated_sql,
+            validation_error=obj_in.validation_error,
+            execution_result=obj_in.execution_result,
+            execution_time_ms=obj_in.execution_time_ms,
+            chart_data=obj_in.chart_data,
             model_name=obj_in.model_name,
             tokens_used=obj_in.tokens_used,
         )

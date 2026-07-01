@@ -52,7 +52,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
 
     // 1. Immediately append to chat
     const tempId = `temp-${Date.now()}`
-    const userMsg: AIMessage = { id: tempId, role: 'user', content }
+    const userMsg: AIMessage = { id: tempId, role: 'user', content, has_sql: false }
     setMessages(prev => [...prev, userMsg])
 
     try {
