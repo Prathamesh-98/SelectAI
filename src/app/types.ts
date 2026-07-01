@@ -22,6 +22,12 @@ export interface AIMessage {
   execution_result?: any
   execution_time_ms?: number
   chart_data?: any
+  insight_data?: {
+    summary: string
+    key_findings: string[]
+    recommendations: string[]
+    limitations: string[]
+  }
 }
 
 // ─── Analysis Session ─────────────────────────────────────────────────────────

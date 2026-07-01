@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { SQLCodeBlock }  from '../../design-system/components/SQLCodeBlock'
 import { QueryChart }    from '../../design-system/components/QueryChart'
+import { InsightsCard }  from '../../design-system/components/InsightsCard'
 import { useWorkspace }  from '../WorkspaceContext'
 import { useDatasets }   from '../DatasetContext'
 import { useSessions }   from '../SessionContext'
@@ -152,6 +153,12 @@ function AIAnalystTab({ session, workspace, onUpdate }: { session: AnalysisSessi
                   {msg.chart_data && msg.chart_data.chart_type !== 'none' && (
                     <div className="w-full mt-2">
                       <QueryChart data={msg.chart_data} />
+                    </div>
+                  )}
+                  
+                  {msg.insight_data && (
+                    <div className="w-full mt-2">
+                      <InsightsCard data={msg.insight_data} />
                     </div>
                   )}
                   

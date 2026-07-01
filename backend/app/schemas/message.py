@@ -15,6 +15,7 @@ class MessageBase(BaseModel):
     execution_result: Optional[dict] = Field(None, description="JSON object containing rows, columns, and row_count of the executed query")
     execution_time_ms: Optional[int] = Field(None, description="Time taken to execute the query in milliseconds")
     chart_data: Optional[dict] = Field(None, description="Automatic visualization metadata generated from execution_result")
+    insight_data: Optional[dict] = Field(None, description="AI-generated business insights from SQL execution results")
     model_name: Optional[str] = Field(None, description="AI model identifier")
     tokens_used: Optional[int] = Field(None, description="Total tokens consumed")
 

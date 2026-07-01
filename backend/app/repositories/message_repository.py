@@ -23,6 +23,7 @@ class MessageRepository:
             execution_result=obj_in.execution_result,
             execution_time_ms=obj_in.execution_time_ms,
             chart_data=obj_in.chart_data,
+            insight_data=obj_in.insight_data,
             model_name=obj_in.model_name,
             tokens_used=obj_in.tokens_used,
         )

@@ -16,6 +16,7 @@ from app.schemas.message import MessageCreate
 from app.services.ai.ai_service import AIService
 from app.services.sql.sql_executor import SQLExecutor
 from app.services.charts.chart_recommender import ChartRecommender
+from app.services.insights.insight_builder import InsightBuilder
 from app.models.enums import MessageRole
 
 
@@ -105,10 +106,24 @@ class MessageService:
                 execution_result = None
                 execution_time_ms = None
                 chart_data = None
+                insight_data = None
                 
                 if generated_sql and not validation_error:
                     execution_result, execution_time_ms = SQLExecutor.execute(generated_sql, datasets)
                     chart_data = ChartRecommender.generate_chart_data(execution_result)
+                    
+                    # Generate Insights
+                    is_execution_empty = not execution_result or execution_result.get("row_count", 0) == 0
+                    is_execution_failed = execution_result and "error" in execution_result
+                    is_chart_none = chart_data and chart_data.get("chart_type") == "none"
+                    
+                    if not is_execution_failed and not is_execution_empty and not is_chart_none:
+                        insight_data = await InsightBuilder.generate(
+                            user_question=obj_in.content,
+                            generated_sql=generated_sql,
+                            execution_result=execution_result,
+                            chart_data=chart_data
+                        )
                 
                 # Save assistant message
                 assistant_msg_in = MessageCreate(
@@ -120,6 +135,7 @@ class MessageService:
                     execution_result=execution_result,
                     execution_time_ms=execution_time_ms,
                     chart_data=chart_data,
+                    insight_data=insight_data,
                     has_sql=bool(generated_sql)
                 )
                 await self.message_repo.create(assistant_msg_in)

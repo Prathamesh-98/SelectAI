@@ -20,7 +20,8 @@ export const messagesApi = {
       validation_error: msg.validation_error || undefined,
       execution_result: msg.execution_result || undefined,
       execution_time_ms: msg.execution_time_ms || undefined,
-      chart_data: msg.chart_data || undefined
+      chart_data: msg.chart_data || undefined,
+      insight_data: msg.insight_data || undefined
     }))
   },
   
@@ -35,7 +36,8 @@ export const messagesApi = {
       validation_error: data.validation_error || undefined,
       execution_result: data.execution_result || undefined,
       execution_time_ms: data.execution_time_ms || undefined,
-      chart_data: data.chart_data || undefined
+      chart_data: data.chart_data || undefined,
+      insight_data: data.insight_data || undefined
     }
   }
 }

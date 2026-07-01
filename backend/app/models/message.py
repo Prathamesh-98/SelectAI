@@ -101,6 +101,12 @@ class Message(UUIDMixin, TimestampMixin, Base):
         default=None,
         comment="Automatic visualization metadata generated from execution_result",
     )
+    insight_data: Mapped[dict | None] = mapped_column(
+        JSONB,
+        nullable=True,
+        default=None,
+        comment="AI-generated business insights from SQL execution results",
+    )
     model_name: Mapped[str | None] = mapped_column(
         sa.String(100),
         nullable=True,
